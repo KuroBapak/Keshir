@@ -52,61 +52,82 @@ This system consists of:
 - The system shall deny login access to staff users who have not checked-in for the day.
 - This rule applies to all roles except Owner.
 
-### FR-03 Attendance System
+### FR-03 Attendance System (Web vs IoT)
 - The system shall allow staff to check-in and check-out.
-- The system shall record timestamp for each attendance action.
-- The system shall support configurable work schedule (start/end shift).
-
+- For the development phase, the system provides a temporary web route (`/absencetemp`) containing a dropdown of seeded users to perform manual check-in/out.
+- The web attendance is designed to be easily replaced by the future IoT MQTT device integration.
+- The system shall record timestamps for each attendance action and support configurable work schedules.
+### FR-03B Cash Drawer & Shift Management
+- The system shall require the Cashier to input the **Starting Cash** (modal awal) when opening a shift.
+- The system shall track all cash transactions (Cash IN from sales, Cash OUT from refunds or petty cash).
+- The system shall require the Cashier to input the **Ending Cash** (total fisik uang) when closing the shift, and log any discrepancies.
 ### FR-04 POS Order Creation
-- The system shall allow cashier to create orders (dine-in/take-away).
-- The system shall allow assigning a table/seat for dine-in.
+- The system shall allow cashier to create orders (dine-in/take-away) and assign a table/seat.
+- The system shall prevent selection of a table if its status is currently occupied or booked.
+- Orders created by the cashier shall immediately be stored as an **Open Bill** (unpaid).
+- The system shall allow the Cashier to add **Notes/Add-ons** (e.g., "Less sugar") to specific items.
 
-### FR-05 Cart and Checkout
-- The system shall allow adding/removing items in cart.
-- The system shall allow modifying quantity.
-- The system shall calculate subtotal and total automatically.
+### FR-05 Cart, Checkout, and Payment Flow (Cashier)
+- The system shall allow adding/removing items and modifying quantity.
+- The system shall calculate subtotal, **Tax (e.g., PPN), Service Charge, and Discounts**, yielding the final Grand Total.
+- The Master Admin shall have the ability to enable/disable Tax and Service Charge calculations.
+- Upon checkout, the cashier must choose the payment method (Cash or Digital).
+- **Cash Payment:** The system shall display a modal to input the received cash amount and automatically calculate the change.
+- **Digital Payment:** The system shall process the payment (e.g., via QRIS/Transfer).
+- Transactions can be marked as Paid, or left as Open Bill to be paid later.
+- If an Open Bill is canceled, the Cashier can **Void** it without restrictions, and the system shall automatically restock the ingredients.
+- If a **Paid Bill** is canceled (e.g., failed to serve), the system shall record a **Refund Log** (stating the amount, reason, and authorized user) and restock the ingredients.
 
 ### FR-06 Transaction Storage
 - The system shall store transaction data and transaction details.
 
 ### FR-07 Receipt/Invoice Generation
-- The system shall generate digital receipt after successful checkout.
+- The system shall generate a digital receipt after successful checkout.
+- The system shall support printing/generating billing statements for Open Bills.
 
 ### FR-08 Product/Menu Management
 - The system shall support CRUD for menu items.
-- Each product shall have name, price, category, photo, tags.
+- Each product shall have name, base price, category, photo, tags.
+- **Product Variants & Add-ons:** The system shall allow products to have variants (e.g., Size, Hot/Ice) and Add-ons (e.g., Extra shot, Extra cheese) that **modify the final price**.
+
+### FR-08B Discount & Promo Management
+- The Manager/Admin shall be able to create Discounts (nominal or percentage).
+- Discounts can be applied to specific items or the entire bill.
 
 ### FR-09 Inventory Management (Ingredients)
 - The system shall support CRUD for ingredients.
 - The system shall support stock in/out logs.
+- The system shall require an **Expiry Date** input during stock-in.
 
-### FR-10 Low Stock Alert
-- The system shall alert admin/manager if stock is below minimum threshold.
+### FR-10 Expiry & Low Stock Alerts
+- The system shall alert admin/manager if stock is below the minimum threshold.
+- The system shall alert admin/manager of ingredients approaching their Expiry Date.
 
 ### FR-11 Recipe Management
 - The system shall allow creating recipes linked to menu items.
 - Recipes shall define ingredient quantity per product.
 
-### FR-12 Automatic Recipe-Based Stock Deduction
-- The system shall automatically deduct ingredient stock after payment is confirmed.
+### FR-12 Automatic Recipe-Based Stock Deduction (FIFO & Voiding)
+- The system shall automatically deduct ingredient stock upon order creation or payment (configurable depending on workflow, default scenario: at order creation).
+- The system shall apply a **First-In, First-Out (FIFO)** method, prioritizing the deduction of stock batches with the closest Expiry Date.
+- If an order is **Voided or Canceled** (such as unpaid Midtrans timeouts), the deducted ingredients must be returned to inventory.
 
 ### FR-13 Customer QR Ordering Module
 - Customers shall access menu via QR without login.
 - Customers shall browse menu, filter items, and add to cart.
 
-### FR-14 Unified Checkout (Dine Now / Booking)
-- Customer checkout shall provide options:
-  - Dine Now
-  - Booking
-- Both options shall request:
-  - customer name
-  - phone number
-  - table/seat
-  - number of people
+### FR-14 Unified Checkout (Dine Now / Booking) from QR
+- Customer checkout shall provide options: Dine Now & Booking.
+- Both options shall request: customer name, phone number, table/seat, and number of people.
+- The Table selection dropdown shall only display available tables (hiding occupied/booked tables based on current POS/Booking data).
+- The system shall allow Customers to select **Variants/Add-ons** (affecting price) and add **Notes** to their order.
+- The system shall calculate and display the Subtotal, Tax, Service Charge, and Grand Total to the customer.
 - Booking shall additionally require booking time.
 
-### FR-15 Booking Approval
-- Booking requests shall require cashier approval before confirmation.
+### FR-15 Booking and Kitchen Dashboard Flow
+- **Kitchen Dashboard:** The Kitchen Staff shall have access to a dedicated Kitchen View, displaying active incoming orders, variants, and notes. Kitchen Staff can update the status of individual items (e.g., "In Progress", "Done").
+- **Dine Now (Direct Order):** Validated orders shall immediately route to the Kitchen Dashboard as active tickets.
+- **Booking:** Booking requests shall route to the Cashier's Booking View for approval. Approved bookings will enter the kitchen queue at the appropriate time based on the scheduled booking.
 
 ### FR-16 Payment Simulation (Midtrans)
 - The system shall integrate Midtrans sandbox for payment simulation.
@@ -115,9 +136,16 @@ This system consists of:
   - paid
   - failed
 
-### FR-17 Payment Validation Rule
-- Transactions shall only be saved if payment is confirmed.
-- If payment is canceled/failed, the order shall not be stored.
+### FR-17 Payment Validation Rule (Customer QR)
+- Customer QR orders shall only be saved upon payment confirmation.
+- If payment is canceled, failed, or timed out in Midtrans, the QR order shall not be stored, and the system must cleanup related data.
+- *Note: This restriction does not apply to Cashier POS orders (which use the Open Bill system).*
+
+### FR-18 End-of-Day (Closing) & Shift Procedures
+- The system shall enforce a daily closing / shift closing verification by the cashier/manager.
+- The system shall check for any remaining **Open Bills** and require them to be closed (paid or voided).
+- The system shall require confirmation/reconciliation of the daily physical vs. system stock.
+- The system shall reconcile the **Cash Drawer** (System Cash vs Physical Cash).
 
 ### FR-18 Reporting & Analytics
 - The system shall provide sales reports daily/weekly/monthly.
