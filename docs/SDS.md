@@ -3,7 +3,7 @@
 ## 1. System Architecture
 The system is designed using a modular architecture:
 
-- **Frontend (React):** UI for staff dashboard and customer QR ordering.
+- **Frontend:** Server-rendered views (Blade, simple HTML/Tailwind) for faster development.
 - **Backend (Laravel 12):** REST API and business logic processing.
 - **Database (MySQL):** persistent storage for transactions, stock, recipes, and attendance.
 - **Payment Integration:** Midtrans Sandbox Simulation.

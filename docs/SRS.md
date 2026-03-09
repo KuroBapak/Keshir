@@ -33,7 +33,7 @@ This system consists of:
 | Component | Technology |
 |----------|------------|
 | Backend | Laravel 12 |
-| Frontend | React |
+| Frontend | Blade / Simple HTML CSS / Tailwind |
 | Database | MySQL |
 | Hosting | Home Server (Coolify) |
 | Payment | Midtrans Sandbox Simulation |
