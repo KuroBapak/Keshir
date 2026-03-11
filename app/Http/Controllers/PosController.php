@@ -188,4 +188,80 @@ class PosController extends Controller
             abort(403, 'Bill ini sudah tidak bisa diedit.');
         }
     }
+
+    /**
+     * View list of incoming bookings.
+     */
+    public function bookings()
+    {
+        $bookings = \App\Models\Booking::with(['transaction.table', 'transaction.details.product', 'transaction.details.variant', 'transaction.details.addons.addon'])
+            ->orderByRaw("FIELD(status, 'pending', 'confirmed', 'completed', 'cancelled')")
+            ->orderBy('booking_time', 'asc')
+            ->get();
+
+        return view('dashboard.pos.bookings', compact('bookings'));
+    }
+
+    /**
+     * Update Booking status.
+     * Table locking logic is applied here.
+     */
+    public function updateBookingStatus(Request $request, \App\Models\Booking $booking)
+    {
+        $request->validate(['status' => 'required|in:pending,confirmed,completed,cancelled']);
+        
+        $oldStatus = $booking->status;
+        $newStatus = $request->status;
+        $transaction = $booking->transaction;
+        $table = $transaction->table;
+
+        $booking->update(['status' => $newStatus]);
+
+        if ($table) {
+            // If booking is confirmed or pending, table stays booked
+            if (in_array($newStatus, ['pending', 'confirmed'])) {
+                $table->update(['status' => 'booked']);
+            } 
+            // If completed or cancelled, table is freed
+            else if (in_array($newStatus, ['completed', 'cancelled'])) {
+                $table->update(['status' => 'available']);
+                
+                // If cancelled and it was unpaid QR order or open POS order, void the bill
+                if ($newStatus === 'cancelled' && $transaction->payment_status === 'open') {
+                    $this->transactionService->voidBill($transaction);
+                }
+            }
+        }
+
+        return back()->with('success', 'Status booking diperbarui.');
+    }
+
+    /**
+     * View POS Table Grid for Dine-In Management.
+     */
+    public function tables()
+    {
+        // Get all tables ordered by number
+        $tables = \App\Models\Table::orderBy('table_number')->get();
+        // Load active transactions for occupied tables to show who is sitting there
+        $activeDineIn = \App\Models\Transaction::where('order_type', 'dine_in')
+            ->whereIn('payment_status', ['open', 'paid']) // Only show active ones
+            ->get()
+            ->keyBy('table_id');
+
+        return view('dashboard.pos.tables', compact('tables', 'activeDineIn'));
+    }
+
+    /**
+     * Cashier forcefully marks a table as available after customers leave.
+     */
+    public function clearTable(Request $request, \App\Models\Table $table)
+    {
+        if ($table->status === 'booked') {
+            return back()->with('error', 'Meja ini sedang dibooking. Ubah status reservasi di menu Reservasi.');
+        }
+
+        $table->update(['status' => 'available']);
+        return back()->with('success', "Meja {$table->table_number} berhasil dikosongkan.");
+    }
 }

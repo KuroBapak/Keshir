@@ -60,6 +60,7 @@ This system consists of:
 ### FR-03B Cash Drawer & Shift Management
 - The system shall require the Cashier to input the **Starting Cash** (modal awal) when opening a shift.
 - The system shall track all cash transactions (Cash IN from sales, Cash OUT from refunds or petty cash).
+- The system shall provide a **Shift Sales Log** (Detil Penjualan Shift) showing all transactions made during the currently open shift.
 - The system shall require the Cashier to input the **Ending Cash** (total fisik uang) when closing the shift, and log any discrepancies.
 ### FR-04 POS Order Creation
 - The system shall allow cashier to create orders (dine-in/take-away) and assign a table/seat.
@@ -127,7 +128,8 @@ This system consists of:
 ### FR-15 Booking and Kitchen Dashboard Flow
 - **Kitchen Dashboard:** The Kitchen Staff shall have access to a dedicated Kitchen View, displaying active incoming orders, variants, and notes. Kitchen Staff can update the status of individual items (e.g., "In Progress", "Done").
 - **Dine Now (Direct Order):** Validated orders shall immediately route to the Kitchen Dashboard as active tickets.
-- **Booking:** Booking requests shall route to the Cashier's Booking View for approval. Approved bookings will enter the kitchen queue at the appropriate time based on the scheduled booking.
+- **Booking Management:** Cashiers shall have access to a dedicated Booking View to review incoming reservations. 
+- **Booking Table Rules:** When a booking is received/pending or accepted/confirmed, the associated table must be locked (disabled from selection). The table is only freed when the booking is completed (guests finish) or rejected/cancelled (no-show).
 
 ### FR-16 Payment Simulation (Midtrans)
 - The system shall integrate Midtrans sandbox for payment simulation.

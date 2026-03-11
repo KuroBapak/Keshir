@@ -104,4 +104,26 @@ class CashDrawerController extends Controller
             abort(403, 'Bukan shift Anda.');
         }
     }
+
+    /**
+     * Show detailed Sales Log for the currently OPEN shift.
+     * Accessible by the cashier via the sidebar link.
+     */
+    public function shiftSales()
+    {
+        $activeDrawer = CashDrawer::where('user_id', auth()->id())
+            ->where('status', 'open')
+            ->first();
+
+        // If no active shift, send empty collection to view
+        $transactions = collect();
+        if ($activeDrawer) {
+            $transactions = \App\Models\Transaction::with(['details.product', 'details.variant', 'payment'])
+                ->where('cash_drawer_id', $activeDrawer->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+
+        return view('dashboard.pos.shift-sales', compact('activeDrawer', 'transactions'));
+    }
 }

@@ -29,7 +29,8 @@ The system is designed using a modular architecture:
 - Checkout process (Cash Modal / Digital)
 - Supports **Open Bill** (Save unpaid transactions)
 - Receipt & Billing statement generation
-- **Cash Drawer & Shift Management**
+- **Cash Drawer & Shift Management** (Open/Close shifts, log Cash IN/OUT)
+- **Shift Sales Log** (View detailed transactions for the active shift)
 
 ### 2.4 Product/Menu Module
 - CRUD menu items
@@ -52,10 +53,10 @@ The system is designed using a modular architecture:
 - Sends status updates back to the POS/Cashier view
 
 ### 2.7 Booking & Kitchen Flow Module
-- **Dine Now:** Orders go directly to Kitchen Display.
+- **Dine Now:** Orders go directly to Kitchen Display and immediately mark the table as occupied.
 - **Booking:** Booking created after payment confirmation (QR) or saved as Open Bill (POS).
-- Bookings require cashier approval before entering the kitchen queue.
-- Validates Table availability (prevents double booking).
+- Bookings route to the Cashier's Booking View for approval (`/pos/bookings`).
+- **Table Locking:** Validates Table availability. When booking is pending or confirmed, the table remains locked. Table is freed when booking is completed or cancelled.
 
 ### 2.8 Payment Module
 - Midtrans sandbox payment simulation

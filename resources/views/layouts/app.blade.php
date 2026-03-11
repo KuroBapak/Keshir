@@ -107,8 +107,10 @@
 
             @if($role === 'cashier')
             <div class="section-title">Kasir</div>
-            <a href="{{ route('pos.index') }}" class="{{ request()->routeIs('pos.*') ? 'active' : '' }}">🧾 POS Kasir</a>
-            <a href="{{ route('cash-drawer.index') }}" class="{{ request()->routeIs('cash-drawer.*') ? 'active' : '' }}">💰 Kas Laci</a>
+            <a href="{{ route('pos.index') }}" class="{{ request()->routeIs('pos.*') && !request()->routeIs('pos.bookings') ? 'active' : '' }}">🧾 POS Kasir</a>
+            <a href="{{ route('pos.bookings') }}" class="{{ request()->routeIs('pos.bookings') ? 'active' : '' }}">📅 Reservasi / Booking</a>
+            <a href="{{ route('cash-drawer.index') }}" class="{{ request()->routeIs('cash-drawer.*') && !request()->routeIs('cash-drawer.shift-sales') ? 'active' : '' }}">💰 Kas Laci</a>
+            <a href="{{ route('cash-drawer.shift-sales') }}" class="{{ request()->routeIs('cash-drawer.shift-sales') ? 'active' : '' }}">📊 Penjualan Shift</a>
             <a href="{{ route('refunds.index') }}" class="{{ request()->routeIs('refunds.*') ? 'active' : '' }}">🔄 Refund</a>
             @endif
             @endauth

@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
     });
     // Cash Drawer (Cashier+)
     Route::middleware('role:owner,manager,cashier')->prefix('cash-drawer')->group(function () {
+        Route::get('/shift-sales', [CashDrawerController::class, 'shiftSales'])->name('cash-drawer.shift-sales');
         Route::get('/', [CashDrawerController::class, 'index'])->name('cash-drawer.index');
         Route::post('/open', [CashDrawerController::class, 'open'])->name('cash-drawer.open');
         Route::get('/{cashDrawer}', [CashDrawerController::class, 'show'])->name('cash-drawer.show');
@@ -117,6 +118,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/bill/{transaction}/void', [PosController::class, 'voidBill'])->name('pos.voidBill');
         Route::post('/bill/{transaction}/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
         Route::get('/receipt/{transaction}', [PosController::class, 'receipt'])->name('pos.receipt');
+        
+        // Bookings
+        Route::get('/bookings', [PosController::class, 'bookings'])->name('pos.bookings');
+        Route::patch('/bookings/{booking}/status', [PosController::class, 'updateBookingStatus'])->name('pos.updateBookingStatus');
+
+        // Tables Management (Clear Dine-In Tables)
+        Route::get('/tables', [PosController::class, 'tables'])->name('pos.tables');
+        Route::patch('/tables/{table}/clear', [PosController::class, 'clearTable'])->name('pos.clearTable');
     });
 
     // Kitchen (Kitchen Staff)

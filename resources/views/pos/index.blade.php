@@ -57,6 +57,7 @@
             @else
                 <a href="{{ route('cash-drawer.index') }}" class="btn btn-xs btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.3);">💰 Kas Laci</a>
             @endif
+            <a href="{{ route('pos.tables') }}" class="btn btn-xs btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.3);">🪑 Status Meja</a>
             <form action="{{ route('logout') }}" method="POST" style="display:inline;">@csrf<button type="submit" class="btn btn-xs btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.3);">Logout</button></form>
         </div>
     </nav>
