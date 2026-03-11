@@ -17,7 +17,17 @@ class KitchenController extends Controller
     public function index()
     {
         $tickets = Transaction::with(['details.product', 'details.variant', 'details.addons.addon', 'table'])
-            ->whereIn('payment_status', ['open', 'paid'])
+            ->where(function ($q) {
+                // POS orders go to kitchen immediately (Open Bill)
+                // QR orders MUST be paid first (FR-17)
+                $q->where(function ($q2) {
+                    $q2->where('source', 'pos')
+                       ->whereIn('payment_status', ['open', 'paid']);
+                })->orWhere(function ($q2) {
+                    $q2->where('source', 'qr')
+                       ->where('payment_status', 'paid');
+                });
+            })
             ->whereHas('details', fn($q) => $q->whereIn('status', ['pending', 'in_progress']))
             ->orderBy('created_at', 'asc')
             ->get();

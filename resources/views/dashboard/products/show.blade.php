@@ -18,6 +18,16 @@
         <div><strong>Status:</strong> {!! $product->is_active ? '<span class="badge badge-success">Aktif</span>' : '<span class="badge badge-danger">Nonaktif</span>' !!}</div>
         <div><strong>Tags:</strong> {{ $product->tags ?: '-' }}</div>
     </div>
+    @if(is_array($product->photos) && count($product->photos) > 0)
+        <div style="margin-top:1rem;">
+            <strong style="display:block;margin-bottom:0.5rem;">Foto Produk:</strong>
+            <div style="display:flex; overflow-x:auto; gap:0.5rem; scroll-snap-type:x mandatory; scrollbar-width:thin; padding-bottom:0.5rem;">
+                @foreach($product->photos as $photo)
+                    <img src="{{ asset('storage/' . $photo) }}" style="flex:0 0 120px; width:120px; height:120px; object-fit:cover; border-radius:0.4rem; border:1px solid #e2e8f0; scroll-snap-align:start;">
+                @endforeach
+            </div>
+        </div>
+    @endif
     @if($product->description)<p class="mt-1 text-muted" style="font-size:0.85rem;">{{ $product->description }}</p>@endif
 </div>
 

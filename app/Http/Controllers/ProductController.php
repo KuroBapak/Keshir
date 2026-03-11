@@ -35,11 +35,23 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'tags' => 'nullable|string|max:255',
             'is_active' => 'boolean',
+            'photos' => 'nullable|array|max:5',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
-        $product = Product::create($request->only([
+        $data = $request->only([
             'name', 'base_price', 'category_id', 'description', 'tags', 'is_active',
-        ]));
+        ]);
+
+        if ($request->hasFile('photos')) {
+            $photos = [];
+            foreach ($request->file('photos') as $file) {
+                $photos[] = $file->store('products', 'public');
+            }
+            $data['photos'] = $photos;
+        }
+
+        $product = Product::create($data);
 
         return redirect()->route('products.show', $product)->with('success', 'Produk berhasil ditambahkan.');
     }
@@ -65,17 +77,50 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'tags' => 'nullable|string|max:255',
             'is_active' => 'boolean',
+            'photos' => 'nullable|array|max:5',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
+            'delete_photos' => 'nullable|array',
         ]);
 
-        $product->update($request->only([
+        $data = $request->only([
             'name', 'base_price', 'category_id', 'description', 'tags', 'is_active',
-        ]));
+        ]);
+
+        $currentPhotos = $product->photos ?? [];
+
+        if ($request->has('delete_photos')) {
+            foreach ($request->delete_photos as $deletePath) {
+                if (($key = array_search($deletePath, $currentPhotos)) !== false) {
+                    \Storage::disk('public')->delete($deletePath);
+                    unset($currentPhotos[$key]);
+                }
+            }
+            $currentPhotos = array_values($currentPhotos);
+        }
+
+        if ($request->hasFile('photos')) {
+            // Check max 5 constraint
+            if (count($currentPhotos) + count($request->file('photos')) > 5) {
+                return back()->withInput()->withErrors(['photos' => 'Maksimal 5 foto per produk.']);
+            }
+            foreach ($request->file('photos') as $file) {
+                $currentPhotos[] = $file->store('products', 'public');
+            }
+        }
+
+        $data['photos'] = $currentPhotos;
+        $product->update($data);
 
         return redirect()->route('products.show', $product)->with('success', 'Produk berhasil diupdate.');
     }
 
     public function destroy(Product $product)
     {
+        if (is_array($product->photos)) {
+            foreach ($product->photos as $photo) {
+                \Storage::disk('public')->delete($photo);
+            }
+        }
         $product->delete();
         return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus.');
     }
