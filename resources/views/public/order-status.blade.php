@@ -4,131 +4,448 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Status Pesanan — Keshir</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        :root { --primary:#2563eb; --bg:#f8fafc; --text:#1e293b; --muted:#64748b; --card:#fff; --border:#e2e8f0; --success:#16a34a; --warning:#eab308; }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 2rem; margin: 0; }
-        .header { background: #fff; padding: 1.25rem 1rem; border-bottom: 1px solid var(--border); text-align: center; position: sticky; top:0; z-index:10; }
-        .header h1 { font-size: 1.15rem; font-weight: 800; margin: 0; }
+        :root { 
+            --primary:#2563eb; 
+            --primary-dark:#1d4ed8;
+            --primary-50:#eff6ff;
+            --primary-100:#dbeafe;
+            --bg:#f8fafc; 
+            --text:#0f172a; 
+            --text-secondary:#475569;
+            --muted:#64748b; 
+            --card:#fff; 
+            --border:#e2e8f0; 
+            --success:#10b981; 
+            --success-bg:#d1fae5;
+            --warning:#f59e0b; 
+            --warning-bg:#fef3c7;
+            --danger:#ef4444;
+            --danger-bg:#fee2e2;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', system-ui, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            min-height: 100vh;
+        }
         
-        .container { padding: 1rem; max-width: 600px; margin: 0 auto; }
+        /* Header */
+        .header { 
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            padding: 1.5rem 1rem; 
+            text-align: center; 
+            position: sticky; 
+            top: 0; 
+            z-index: 10;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
+        }
+        .header .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            margin-bottom: 0.35rem;
+        }
+        .header .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        .header h1 { font-size: 1.25rem; font-weight: 800; }
+        .header .subtitle { font-size: 0.85rem; opacity: 0.9; margin-top: 0.25rem; }
         
-        .status-card { background: var(--card); border-radius: 1rem; padding: 1.5rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1rem; }
-        .badge { display: inline-block; padding: 0.4rem 1rem; border-radius: 9999px; font-weight: 700; font-size: 0.85rem; margin-bottom: 1rem; }
-        .badge-pending { background: #fef08a; color: #854d0e; }
-        .badge-paid { background: #dcfce7; color: #166534; }
-        .badge-void { background: #fef2f2; color: #991b1b; }
+        .container { padding: 1.25rem; max-width: 600px; margin: 0 auto; }
         
-        .r-title { font-size: 0.9rem; color: var(--muted); margin-bottom: 0.2rem; }
-        .r-value { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+        /* Status Card */
+        .status-card { 
+            background: var(--card); 
+            border-radius: 1.25rem; 
+            padding: 2rem 1.5rem; 
+            text-align: center; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, #3b82f6 100%);
+        }
+        .status-card.paid::before { background: linear-gradient(90deg, var(--success) 0%, #34d399 100%); }
+        .status-card.void::before { background: linear-gradient(90deg, var(--danger) 0%, #f87171 100%); }
+        .status-card.pending::before { background: linear-gradient(90deg, var(--warning) 0%, #fcd34d 100%); }
         
-        .receipt-card { background: center/cover url('data:image/svg+xml;utf8,<svg width="100" height="10" viewBox="0 0 100 10" xmlns="http://www.w3.org/2000/svg"><path d="M0 10 L5 0 L10 10" stroke="none" fill="%23fff"/></svg>') repeat-x bottom; background-color: var(--card); border-radius: 0.75rem 0.75rem 0 0; padding: 1.5rem; margin-top: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding-bottom: 2rem; }
+        .status-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.25rem;
+            margin: 0 auto 1rem;
+        }
+        .status-icon.paid { background: var(--success-bg); }
+        .status-icon.void { background: var(--danger-bg); }
+        .status-icon.pending { background: var(--warning-bg); }
+        .status-icon.cooking { background: #ffedd5; }
         
-        .r-item { display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.9rem; }
-        .r-item-name { font-weight: 600; }
-        .r-item-meta { font-size: 0.75rem; color: var(--muted); }
+        .badge { 
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 1.1rem; 
+            border-radius: 50px; 
+            font-weight: 700; 
+            font-size: 0.8rem; 
+            margin-bottom: 1rem; 
+        }
+        .badge-pending { background: var(--warning-bg); color: #92400e; }
+        .badge-paid { background: var(--success-bg); color: #065f46; }
+        .badge-void { background: var(--danger-bg); color: #991b1b; }
         
-        .r-total-row { display: flex; justify-content: space-between; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); font-size: 0.9rem; }
-        .r-grand { font-weight: 800; font-size: 1.1rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px dashed var(--border); }
+        .status-title { font-size: 1.25rem; font-weight: 800; color: var(--text); }
+        .status-desc { font-size: 0.9rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
         
-        .cooking-status { font-size: 0.75rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 600; margin-left: 0.5rem; }
+        /* Progress Bar */
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border);
+        }
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            flex: 1;
+            max-width: 100px;
+        }
+        .progress-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: var(--muted);
+            transition: all 0.3s ease;
+        }
+        .progress-dot.active { background: var(--primary); color: #fff; }
+        .progress-dot.done { background: var(--success); color: #fff; }
+        .progress-label { font-size: 0.7rem; color: var(--muted); text-align: center; font-weight: 600; }
+        .progress-label.active { color: var(--primary); }
+        .progress-label.done { color: var(--success); }
+        
+        /* Info Cards */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .info-card {
+            background: var(--card);
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+        }
+        .info-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .info-value { font-size: 1rem; font-weight: 700; color: var(--text); }
+        
+        /* Receipt Card */
+        .receipt-card { 
+            background: var(--card); 
+            border-radius: 1rem; 
+            padding: 1.5rem; 
+            margin-top: 1rem; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+        }
+        .receipt-header {
+            text-align: center;
+            padding-bottom: 1.25rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 2px dashed var(--border);
+        }
+        .receipt-header h3 { 
+            font-size: 1.1rem; 
+            font-weight: 800; 
+            color: var(--primary);
+            margin-bottom: 0.35rem;
+        }
+        .receipt-header .meta { font-size: 0.8rem; color: var(--muted); }
+        
+        .r-item { 
+            display: flex; 
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 0.85rem 0; 
+            border-bottom: 1px solid var(--border);
+        }
+        .r-item:last-child { border-bottom: none; }
+        .r-item-name { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .r-item-meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.35rem; }
+        .r-item-price { font-weight: 700; font-size: 0.95rem; color: var(--text); }
+        
+        .cooking-status { 
+            font-size: 0.65rem; 
+            padding: 0.2rem 0.55rem; 
+            border-radius: 50px; 
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
         .cs-pending { background: #f1f5f9; color: var(--muted); }
         .cs-progress { background: #fef08a; color: #854d0e; }
-        .cs-done { background: #dcfce7; color: #166534; }
+        .cs-done { background: var(--success-bg); color: #065f46; }
+        
+        /* Totals */
+        .totals-section { 
+            margin-top: 1.25rem; 
+            padding-top: 1.25rem; 
+            border-top: 2px dashed var(--border); 
+        }
+        .r-total-row { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 0.35rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .r-grand { 
+            font-weight: 800; 
+            font-size: 1.15rem; 
+            color: var(--primary);
+            margin-top: 0.75rem; 
+            padding-top: 0.75rem; 
+            border-top: 2px solid var(--primary); 
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        }
+        .btn-ghost {
+            background: var(--bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { background: #fff; border-color: var(--primary); color: var(--primary); }
+        
+        .action-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        .action-footer .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            transition: all 0.2s ease;
+        }
+        .action-footer .back-link:hover { gap: 0.6rem; }
+        
+        /* Pulse animation */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .pulse { animation: pulse 2s ease-in-out infinite; }
     </style>
     @if($transaction->payment_status === 'open')
-        <meta http-equiv="refresh" content="10"> {{-- Auto refresh every 10s if waiting for payment --}}
+        <meta http-equiv="refresh" content="10">
     @elseif(in_array('pending', $transaction->details->pluck('status')->toArray()) || in_array('in_progress', $transaction->details->pluck('status')->toArray()))
-        <meta http-equiv="refresh" content="30"> {{-- Auto refresh every 30s if cooking --}}
+        <meta http-equiv="refresh" content="30">
     @endif
 </head>
 <body>
     <header class="header">
-        <h1>Status Pesanan</h1>
+        <div class="logo">
+            <div class="logo-icon">☕</div>
+            <h1>Keshir Coffee</h1>
+        </div>
+        <div class="subtitle">Status Pesanan</div>
     </header>
 
     <div class="container">
-        <div class="status-card">
+        @php
+            $hasInProgress = in_array('in_progress', $transaction->details->pluck('status')->toArray());
+            $hasPending = in_array('pending', $transaction->details->pluck('status')->toArray());
+            $allDone = !$hasInProgress && !$hasPending;
+        @endphp
+        
+        <div class="status-card {{ $transaction->payment_status === 'paid' ? 'paid' : ($transaction->payment_status === 'void' ? 'void' : 'pending') }}">
             @if($transaction->payment_status === 'paid')
-                <div class="badge badge-paid">✅ Pembayaran Berhasil</div>
-                @if(in_array('in_progress', $transaction->details->pluck('status')->toArray()))
-                    <h2 class="r-value">🔥 Makanan Sedang Dimasak</h2>
-                    <p style="font-size:0.85rem;color:var(--muted);margin-top:0.5rem;">Koki kami sedang menyiapkan pesanan Anda.</p>
-                @elseif(in_array('pending', $transaction->details->pluck('status')->toArray()))
-                    <h2 class="r-value">👨‍🍳 Dalam Antrean Dapur</h2>
-                    <p style="font-size:0.85rem;color:var(--muted);margin-top:0.5rem;">Pesanan sedang menunggu giliran disiapkan.</p>
+                @if($hasInProgress)
+                    <div class="status-icon cooking pulse">🔥</div>
+                    <div class="badge badge-paid">✅ Pembayaran Berhasil</div>
+                    <h2 class="status-title">Makanan Sedang Dimasak</h2>
+                    <p class="status-desc">Koki kami sedang menyiapkan pesanan Anda dengan penuh cinta ❤️</p>
+                @elseif($hasPending)
+                    <div class="status-icon paid">👨‍🍳</div>
+                    <div class="badge badge-paid">✅ Pembayaran Berhasil</div>
+                    <h2 class="status-title">Dalam Antrean Dapur</h2>
+                    <p class="status-desc">Pesanan sedang menunggu giliran untuk disiapkan.</p>
                 @else
-                    <h2 class="r-value" style="color:var(--success);">🍽️ Pesanan Selesai</h2>
-                    <p style="font-size:0.85rem;color:var(--muted);margin-top:0.5rem;">Terima kasih, silakan nikmati hidangan Anda!</p>
+                    <div class="status-icon paid">🍽️</div>
+                    <div class="badge badge-paid">✅ Pesanan Selesai</div>
+                    <h2 class="status-title" style="color: var(--success);">Siap Dinikmati!</h2>
+                    <p class="status-desc">Terima kasih telah memesan di Keshir. Selamat menikmati! 🎉</p>
                 @endif
+                
+                <!-- Progress Steps -->
+                <div class="progress-steps">
+                    <div class="progress-step">
+                        <div class="progress-dot done">✓</div>
+                        <span class="progress-label done">Bayar</span>
+                    </div>
+                    <div class="progress-step">
+                        <div class="progress-dot {{ $hasPending || $hasInProgress || $allDone ? 'done' : '' }}">{{ $hasPending || $hasInProgress || $allDone ? '✓' : '2' }}</div>
+                        <span class="progress-label {{ $hasPending || $hasInProgress || $allDone ? 'done' : '' }}">Antre</span>
+                    </div>
+                    <div class="progress-step">
+                        <div class="progress-dot {{ $hasInProgress ? 'active' : ($allDone ? 'done' : '') }}">{{ $allDone ? '✓' : ($hasInProgress ? '🔥' : '3') }}</div>
+                        <span class="progress-label {{ $hasInProgress ? 'active' : ($allDone ? 'done' : '') }}">Dimasak</span>
+                    </div>
+                    <div class="progress-step">
+                        <div class="progress-dot {{ $allDone ? 'done' : '' }}">{{ $allDone ? '✓' : '4' }}</div>
+                        <span class="progress-label {{ $allDone ? 'done' : '' }}">Selesai</span>
+                    </div>
+                </div>
             @elseif($transaction->payment_status === 'void')
-                <div class="badge badge-void">❌ Dibatalkan</div>
-                <h2 class="r-value">Struk Kadaluarsa / Dibatalkan</h2>
+                <div class="status-icon void">❌</div>
+                <div class="badge badge-void">Dibatalkan</div>
+                <h2 class="status-title">Pesanan Dibatalkan</h2>
+                <p class="status-desc">Struk ini sudah kadaluarsa atau telah dibatalkan.</p>
             @else
-                <div class="badge badge-pending">⏳ Menunggu Pembayaran</div>
-                <h2 class="r-value">Midtrans Processing...</h2>
-                <div style="font-size:0.85rem;color:var(--muted);margin-top:1rem;">Halaman ini akan refresh otomatis.</div>
+                <div class="status-icon pending pulse">⏳</div>
+                <div class="badge badge-pending">Menunggu Pembayaran</div>
+                <h2 class="status-title">Processing...</h2>
+                <p class="status-desc">Pembayaran via Midtrans sedang diproses. Halaman ini akan refresh otomatis.</p>
             @endif
         </div>
 
-        <div style="display:flex;gap:1rem;">
-            <div style="flex:1;background:var(--card);padding:1rem;border-radius:0.75rem;border:1px solid var(--border);">
-                <div class="r-title">Tipe Pesanan</div>
-                <div class="r-value">
-                    @if($transaction->order_type==='dine_in') Dine In (Meja {{ $transaction->table->table_number ?? '?' }})
-                    @elseif($transaction->order_type==='take_away') Takeaway
-                    @else Booking Meja
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-label">Tipe Pesanan</div>
+                <div class="info-value">
+                    @if($transaction->order_type === 'dine_in') 
+                        🍽️ Dine In
+                    @elseif($transaction->order_type === 'take_away') 
+                        🥡 Takeaway
+                    @else 
+                        📅 Booking
                     @endif
                 </div>
             </div>
-            <div style="flex:1;background:var(--card);padding:1rem;border-radius:0.75rem;border:1px solid var(--border);">
-                <div class="r-title">Atas Nama</div>
-                <div class="r-value">{{ $transaction->customer_name }}</div>
+            <div class="info-card">
+                <div class="info-label">Atas Nama</div>
+                <div class="info-value">{{ $transaction->customer_name }}</div>
             </div>
+            @if($transaction->order_type === 'dine_in' && $transaction->table)
+            <div class="info-card" style="grid-column: span 2;">
+                <div class="info-label">Meja</div>
+                <div class="info-value">{{ $transaction->table->table_number }}</div>
+            </div>
+            @endif
         </div>
 
         <div class="receipt-card">
-            <div style="text-align:center;margin-bottom:1.5rem;">
-                <h3 style="margin:0;font-size:1.1rem;">Keshir Coffee & Eatery</h3>
-                <div style="font-size:0.85rem;color:var(--muted);">ID: #{{ str_pad($transaction->id, 5, '0', STR_PAD_LEFT) }}</div>
-                <div style="font-size:0.85rem;color:var(--muted);">{{ $transaction->created_at->format('d M Y H:i') }}</div>
+            <div class="receipt-header">
+                <h3>☕ Keshir Coffee & Eatery</h3>
+                <div class="meta">Order #{{ str_pad($transaction->id, 5, '0', STR_PAD_LEFT) }}</div>
+                <div class="meta">{{ $transaction->created_at->format('d M Y • H:i') }}</div>
             </div>
 
             @foreach($transaction->details as $d)
                 <div class="r-item">
-                    <div>
+                    <div style="flex:1;">
                         <div class="r-item-name">
                             {{ $d->qty }}x {{ $d->product->name }}
                             @if($transaction->payment_status === 'paid')
-                                @if($d->status === 'done') <span class="cooking-status cs-done">Selesai</span>
-                                @elseif($d->status === 'in_progress') <span class="cooking-status cs-progress">Dimasak</span>
-                                @else <span class="cooking-status cs-pending">Antre</span>
+                                @if($d->status === 'done') 
+                                    <span class="cooking-status cs-done">✓ Selesai</span>
+                                @elseif($d->status === 'in_progress') 
+                                    <span class="cooking-status cs-progress">🔥 Dimasak</span>
+                                @else 
+                                    <span class="cooking-status cs-pending">⏳ Antre</span>
                                 @endif
                             @endif
                         </div>
                         <div class="r-item-meta">
-                            @if($d->variant) <div>var: {{ $d->variant->variant_name }}</div> @endif
-                            @if($d->addons->count() > 0) <div>+ {{ implode(', ', $d->addons->map(fn($a) => $a->addon->addon_name ?? '')->toArray()) }}</div> @endif
+                            @if($d->variant) <div>📦 {{ $d->variant->variant_name }}</div> @endif
+                            @if($d->addons->count() > 0) <div>➕ {{ implode(', ', $d->addons->map(fn($a) => $a->addon->addon_name ?? '')->toArray()) }}</div> @endif
                             @if($d->notes) <div>📝 "{{ $d->notes }}"</div> @endif
                         </div>
                     </div>
-                    <div style="font-weight:600;">{{ number_format($d->price * $d->qty, 0, ',', '.') }}</div>
+                    <div class="r-item-price">Rp {{ number_format($d->price * $d->qty, 0, ',', '.') }}</div>
                 </div>
             @endforeach
 
-            <div style="margin-top:1.5rem;">
+            <div class="totals-section">
                 <div class="r-total-row">
                     <span>Subtotal</span>
-                    <span>{{ number_format($transaction->subtotal, 0, ',', '.') }}</span>
+                    <span>Rp {{ number_format($transaction->subtotal, 0, ',', '.') }}</span>
                 </div>
+                @if($transaction->tax_total > 0)
                 <div class="r-total-row">
                     <span>Pajak</span>
-                    <span>{{ number_format($transaction->tax_total, 0, ',', '.') }}</span>
+                    <span>Rp {{ number_format($transaction->tax_total, 0, ',', '.') }}</span>
                 </div>
+                @endif
+                @if($transaction->service_total > 0)
                 <div class="r-total-row">
                     <span>Service</span>
-                    <span>{{ number_format($transaction->service_total, 0, ',', '.') }}</span>
+                    <span>Rp {{ number_format($transaction->service_total, 0, ',', '.') }}</span>
                 </div>
+                @endif
                 <div class="r-total-row r-grand">
                     <span>Total Bayar</span>
                     <span>Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</span>
@@ -136,15 +453,19 @@
             </div>
             
             @if($transaction->payment_status === 'open')
-                <div style="margin-top:2rem;text-align:center;">
-                    <button onclick="window.location.reload()" style="background:#f1f5f9;border:1px solid var(--border);padding:0.5rem 1rem;border-radius:0.4rem;font-size:0.8rem;color:var(--text);font-weight:600;">🔄 Refresh Cek Pembayaran</button>
-                    <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;">Jika gagal bayar, pesanan ini akan dibatalkan (Meja dilepas otomatis).</div>
+                <div style="margin-top:1.5rem;text-align:center;">
+                    <button onclick="window.location.reload()" class="btn btn-ghost" style="width:100%;">
+                        🔄 Refresh Cek Pembayaran
+                    </button>
+                    <p style="font-size:0.8rem;color:var(--muted);margin-top:0.75rem;">
+                        Jika gagal bayar, pesanan akan dibatalkan otomatis.
+                    </p>
                 </div>
             @endif
         </div>
         
-        <div style="text-align:center;margin-top:2rem;">
-            <a href="{{ route('public.menu') }}" style="color:var(--primary);text-decoration:none;font-size:0.9rem;font-weight:600;">← Kembali ke Menu</a>
+        <div class="action-footer">
+            <a href="{{ route('public.menu') }}" class="back-link">← Kembali ke Menu</a>
         </div>
     </div>
 </body>

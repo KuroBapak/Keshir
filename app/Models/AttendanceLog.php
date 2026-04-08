@@ -12,7 +12,6 @@ class AttendanceLog extends Model
     protected function casts(): array
     {
         return [
-            'date' => 'date',
             'check_in' => 'datetime',
             'check_out' => 'datetime',
         ];

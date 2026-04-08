@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
         // Sample staff accounts for development
         $managerRole = Role::where('name', 'manager')->first();
         User::firstOrCreate(
-            ['username' => 'manager'],
+            ['username' => 'manager'],  
             [
                 'name' => 'Manager',
                 'password' => bcrypt('password'),

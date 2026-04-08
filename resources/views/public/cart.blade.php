@@ -4,81 +4,322 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Keranjang Belanja — Keshir</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        :root { --primary:#2563eb; --bg:#f8fafc; --text:#1e293b; --muted:#64748b; --card:#fff; --border:#e2e8f0; --success:#16a34a; --danger:#dc2626; }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 90px; }
-        .header { background: #fff; border-bottom: 1px solid var(--border); padding: 1rem; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 1rem; }
-        .header h1 { font-size: 1.15rem; font-weight: 700; margin: 0; flex: 1; }
-        .back-btn { text-decoration: none; color: var(--muted); font-size: 1.2rem; }
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-50: #eff6ff;
+            --primary-100: #dbeafe;
+            --bg: #f8fafc;
+            --text: #0f172a;
+            --muted: #64748b;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --danger: #ef4444;
+            --danger-bg: #fee2e2;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', system-ui, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            padding-bottom: 100px;
+            font-size: 14px;
+        }
         
-        .container { padding: 1rem; max-width: 600px; margin: 0 auto; }
+        /* Header */
+        .header {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.25rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 1.25rem;
+            transition: all 0.2s ease;
+        }
+        .back-btn:hover {
+            background: var(--primary-100);
+            color: var(--primary);
+        }
+        .header h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            flex: 1;
+        }
         
-        .cart-item { background: var(--card); border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: flex-start; }
+        .container { padding: 1rem; max-width: 640px; margin: 0 auto; }
+        
+        /* Alert */
+        .alert {
+            padding: 0.85rem 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .alert-success { background: var(--success-bg); color: #065f46; border: 1px solid #a7f3d0; }
+        
+        /* Cart Item */
+        .cart-item {
+            background: var(--card);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 0.85rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+        .cart-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
         .item-info { flex: 1; }
-        .item-name { font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem; }
-        .item-meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.5rem; line-height: 1.4; }
-        .item-price { font-weight: 700; color: var(--primary); }
+        .item-name {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.35rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .item-qty {
+            background: var(--primary);
+            color: #fff;
+            padding: 0.15rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .item-meta {
+            font-size: 0.85rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .item-meta div { margin-bottom: 0.15rem; }
+        .item-price {
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .item-price span {
+            font-weight: 400;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
         
-        .del-btn { background: #fef2f2; color: var(--danger); border: none; width: 32px; height: 32px; border-radius: 0.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .item-right {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.75rem;
+        }
+        .item-subtotal {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+        .del-btn {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        .del-btn:hover {
+            background: var(--danger);
+            color: #fff;
+            transform: scale(1.05);
+        }
         
-        .summary-card { background: var(--card); border-radius: 0.75rem; padding: 1.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-top: 1.5rem; }
-        .summary-title { font-weight: 700; font-size: 1rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
-        .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--muted); }
-        .summary-row.total { font-weight: 800; font-size: 1.15rem; color: var(--text); margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); }
+        /* Summary Card */
+        .summary-card {
+            background: var(--card);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            margin-top: 1.5rem;
+            border: 1px solid var(--border);
+        }
+        .summary-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.65rem;
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+        .summary-row.total {
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: var(--text);
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px dashed var(--border);
+        }
         
-        .checkout-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 1rem; border-top: 1px solid var(--border); box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 20; max-width: 600px; margin: 0 auto; }
-        .checkout-btn { display: block; width: 100%; text-align: center; background: var(--primary); color: #fff; padding: 0.8rem; border-radius: 0.5rem; font-weight: 700; text-decoration: none; font-size: 1rem; }
-        .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+        /* Checkout Bar */
+        .checkout-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+            z-index: 20;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        .checkout-btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+            transition: all 0.2s ease;
+        }
+        .checkout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 1.5rem;
+            color: var(--muted);
+        }
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        .empty-state h3 {
+            font-size: 1.25rem;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        .empty-state p {
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+        .empty-state a {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            padding: 0.75rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+            transition: all 0.2s ease;
+        }
+        .empty-state a:hover {
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
     <header class="header">
         <a href="{{ route('public.menu') }}" class="back-btn">←</a>
-        <h1>Keranjang Belanja</h1>
+        <h1>🛒 Keranjang Belanja</h1>
     </header>
 
     <div class="container">
         @if(session('success'))
-            <div style="background:#dcfce7;color:#166534;padding:0.75rem;border-radius:0.5rem;margin-bottom:1rem;font-size:0.85rem;">
-                {{ session('success') }}
-            </div>
+            <div class="alert alert-success">✅ {{ session('success') }}</div>
         @endif
 
         @forelse($cart as $id => $item)
             <div class="cart-item">
                 <div class="item-info">
-                    <div class="item-name">{{ $item['qty'] }}x {{ $item['product_name'] }}</div>
+                    <div class="item-name">
+                        <span class="item-qty">{{ $item['qty'] }}x</span>
+                        {{ $item['product_name'] }}
+                    </div>
                     <div class="item-meta">
-                        @if($item['variant_name']) <div>Varian: {{ $item['variant_name'] }}</div> @endif
+                        @if($item['variant_name']) <div>📦 Varian: {{ $item['variant_name'] }}</div> @endif
                         @if(count($item['addons']) > 0)
-                            <div>Ekstra: {{ implode(', ', array_column($item['addons'], 'name')) }}</div>
+                            <div>➕ Ekstra: {{ implode(', ', array_column($item['addons'], 'name')) }}</div>
                         @endif
                         @if($item['notes']) <div>📝 {{ $item['notes'] }}</div> @endif
                     </div>
-                    <div class="item-price">Rp {{ number_format($item['price'], 0, ',', '.') }} <span style="font-weight:400;font-size:0.8rem;color:var(--muted)">/item</span></div>
+                    <div class="item-price">
+                        Rp {{ number_format($item['price'], 0, ',', '.') }} <span>/item</span>
+                    </div>
                 </div>
-                <div>
-                    <div style="font-weight:800;text-align:right;margin-bottom:0.75rem;">Rp {{ number_format($item['subtotal'], 0, ',', '.') }}</div>
-                    <form action="{{ route('public.removeFromCart') }}" method="POST" style="text-align:right;">
+                <div class="item-right">
+                    <div class="item-subtotal">Rp {{ number_format($item['subtotal'], 0, ',', '.') }}</div>
+                    <form action="{{ route('public.removeFromCart') }}" method="POST">
                         @csrf
                         <input type="hidden" name="cart_item_id" value="{{ $id }}">
-                        <button type="submit" class="del-btn" style="margin-left:auto;">✕</button>
+                        <button type="submit" class="del-btn">🗑️</button>
                     </form>
                 </div>
             </div>
         @empty
             <div class="empty-state">
-                <div style="font-size:3rem;margin-bottom:1rem;">🛒</div>
-                <h3 style="margin-bottom:0.5rem;font-size:1.1rem;">Keranjang Anda Kosong</h3>
-                <p style="font-size:0.9rem;margin-bottom:1.5rem;">Yuk, lihat menu lezat kami dan mulai pesan sekarang!</p>
-                <a href="{{ route('public.menu') }}" style="display:inline-block;background:var(--primary);color:#fff;padding:0.6rem 1.5rem;border-radius:9999px;text-decoration:none;font-weight:600;font-size:0.9rem;">Lihat Menu</a>
+                <div class="icon">🛒</div>
+                <h3>Keranjang Anda Kosong</h3>
+                <p>Yuk, lihat menu lezat kami dan mulai pesan sekarang!</p>
+                <a href="{{ route('public.menu') }}">Lihat Menu</a>
             </div>
         @endforelse
 
         @if(count($cart) > 0)
             <div class="summary-card">
-                <div class="summary-title">Ringkasan Pesanan</div>
+                <div class="summary-title">📋 Ringkasan Pesanan</div>
                 <div class="summary-row">
                     <span>Subtotal</span>
                     <span>Rp {{ number_format($cartSummary['subtotal'], 0, ',', '.') }}</span>
@@ -105,7 +346,7 @@
 
     @if(count($cart) > 0)
     <div class="checkout-bar">
-        <a href="{{ route('public.checkout') }}" class="checkout-btn">Lanjut ke Pembayaran</a>
+        <a href="{{ route('public.checkout') }}" class="checkout-btn">Lanjut ke Pembayaran →</a>
     </div>
     @endif
 </body>
