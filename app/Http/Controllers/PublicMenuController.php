@@ -27,9 +27,22 @@ class PublicMenuController extends Controller
             ->where('is_active', true)
             ->get();
             
+        $cart = $this->cartService->getCart();
         $cartSummary = $this->cartService->getSummary();
+        $tables = Table::where('status', 'available')->get();
         
-        return view('public.menu', compact('categories', 'products', 'cartSummary'));
+        // Settings for Tax & Service
+        $settings = \App\Models\Setting::pluck('value', 'key');
+        $taxEnabled = filter_var($settings['tax_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $taxRate = $taxEnabled ? (float) ($settings['tax_rate'] ?? 0) : 0;
+        $serviceEnabled = filter_var($settings['service_charge_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $serviceRate = $serviceEnabled ? (float) ($settings['service_charge_rate'] ?? 0) : 0;
+        
+        $taxAmount = ($cartSummary['subtotal'] * $taxRate) / 100;
+        $serviceAmount = ($cartSummary['subtotal'] * $serviceRate) / 100;
+        $grandTotal = $cartSummary['subtotal'] + $taxAmount + $serviceAmount;
+        
+        return view('public.menu', compact('categories', 'products', 'cart', 'cartSummary', 'tables', 'taxRate', 'taxAmount', 'serviceRate', 'serviceAmount', 'grandTotal'));
     }
 
     /**
@@ -91,6 +104,25 @@ class PublicMenuController extends Controller
         $request->validate(['cart_item_id' => 'required|string']);
         $this->cartService->removeItem($request->cart_item_id);
         return back()->with('success', 'Item dihapus dari keranjang.');
+    }
+
+    /**
+     * Update item quantity in cart.
+     */
+    public function updateCart(Request $request)
+    {
+        $request->validate([
+            'cart_item_id' => 'required|string',
+            'qty' => 'required|integer|min:1'
+        ]);
+
+        $this->cartService->updateQty($request->cart_item_id, $request->qty);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kuantitas diperbarui',
+            'summary' => $this->cartService->getSummary()
+        ]);
     }
 
     /**

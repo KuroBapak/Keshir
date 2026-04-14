@@ -80,6 +80,19 @@ class CartService
     }
 
     /**
+     * Update quantity of an item in the cart.
+     */
+    public function updateQty(string $cartItemId, int $qty): void
+    {
+        $cart = $this->getCart();
+        if (isset($cart[$cartItemId]) && $qty > 0) {
+            $cart[$cartItemId]['qty'] = $qty;
+            $cart[$cartItemId]['subtotal'] = $cart[$cartItemId]['price'] * $qty;
+            Session::put(self::SESSION_KEY, $cart);
+        }
+    }
+
+    /**
      * Clear the entire cart.
      */
     public function clearCart(): void

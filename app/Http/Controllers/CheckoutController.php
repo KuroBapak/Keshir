@@ -25,10 +25,21 @@ class CheckoutController extends Controller
 
     private function setupMidtrans()
     {
-        Config::$serverKey = config('midtrans.server_key');
-        Config::$isProduction = config('midtrans.is_production');
-        Config::$isSanitized = config('midtrans.is_sanitized');
-        Config::$is3ds = config('midtrans.is_3ds');
+        Config::$serverKey = env('MIDTRANS_SERVER_KEY', config('midtrans.server_key'));
+        // Parse boolean properly from env string or bool
+        $isProdEnv = env('MIDTRANS_IS_PRODUCTION', config('midtrans.is_production', false));
+        Config::$isProduction = is_string($isProdEnv) ? filter_var($isProdEnv, FILTER_VALIDATE_BOOLEAN) : $isProdEnv;
+        Config::$isSanitized = filter_var(env('MIDTRANS_IS_SANITIZED', config('midtrans.is_sanitized', true)), FILTER_VALIDATE_BOOLEAN);
+        Config::$is3ds = filter_var(env('MIDTRANS_IS_3DS', config('midtrans.is_3ds', true)), FILTER_VALIDATE_BOOLEAN);
+        
+        // Disable SSL verifypeer on local/sandbox to fix curl error
+        // We include a dummy header to avoid "Undefined array key 10023" bug in Midtrans PHP client.
+        if (!Config::$isProduction) {
+            Config::$curlOptions = [
+                \CURLOPT_SSL_VERIFYPEER => false,
+                \CURLOPT_HTTPHEADER => ['X-Midtrans-Local: true'] 
+            ];
+        }
     }
 
     public function process(Request $request)
@@ -119,6 +130,21 @@ class CheckoutController extends Controller
             return $tx;
         });
 
+        // Check if TUNAI
+        if ($request->is_cash === 'true') {
+            // For TUNAI we skip Midtrans, clear cart, and redirect to order status.
+            // Cashier will see this bill as "open" and will handle payment manually.
+            $this->cartService->clearCart();
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'redirect_url' => route('public.order-status', $transaction)
+                ]);
+            }
+            return redirect()->route('public.order-status', $transaction);
+        }
+
         // Request Midtrans Snap Token
         $midtransParams = [
             'transaction_details' => [
@@ -146,12 +172,28 @@ class CheckoutController extends Controller
             // Clear Cart after successful checkout intent
             $this->cartService->clearCart();
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'snap_token' => $snapToken,
+                    'redirect_url' => route('public.order-status', $transaction)
+                ]);
+            }
+
             return view('public.payment', compact('snapToken', 'transaction'));
 
         } catch (\Exception $e) {
             \Log::error('Midtrans Snap Error: ' . $e->getMessage());
             // If Midtrans fails, rollback transaction by voiding it
             $this->transactionService->voidBill($transaction);
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Gagal memproses pembayaran ke server Midtrans. Pastikan Server Key di .env benar. (Error: ' . $e->getMessage() . ')'
+                ], 500);
+            }
+            
             return back()->with('error', 'Gagal memproses pembayaran ke server Midtrans.');
         }
     }
@@ -162,8 +204,35 @@ class CheckoutController extends Controller
         if ($transaction->source !== 'qr') {
             abort(404);
         }
+        
+        $transaction->load(['payment']);
 
-        $transaction->load(['details.product', 'details.variant', 'table']);
+        // Local environment auto-sync (if webhook hasn't arrived)
+        if ($transaction->payment_status === 'open' && $transaction->payment && $transaction->payment->midtrans_reference) {
+            try {
+                $status = \Midtrans\Transaction::status($transaction->payment->midtrans_reference);
+                if (is_object($status)) {
+                    $transactionInfo = $status->transaction_status ?? '';
+                    if ($transactionInfo === 'capture' || $transactionInfo === 'settlement') {
+                        // Process Success
+                        $transaction->payment->update(['status' => 'success', 'amount_paid' => (float)$status->gross_amount]);
+                        $transaction->update(['payment_status' => 'paid']);
+                        $transaction->load('details.addons');
+                        foreach ($transaction->details as $detail) {
+                            $this->transactionService->deductIngredients($detail);
+                        }
+                    } elseif (in_array($transactionInfo, ['deny', 'expire', 'cancel'])) {
+                        // Process Failure
+                        $transaction->payment->update(['status' => 'failed']);
+                        $this->transactionService->voidBill($transaction);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Midtrans Status Sync Error: " . $e->getMessage());
+            }
+        }
+
+        $transaction->refresh()->load(['details.product', 'details.variant', 'table']);
 
         return view('public.order-status', compact('transaction'));
     }

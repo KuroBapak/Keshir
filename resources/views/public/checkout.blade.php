@@ -6,6 +6,14 @@
     <title>Checkout — Keshir</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- Midtrans Snap.js Configuration -->
+    @if(filter_var(env('MIDTRANS_IS_PRODUCTION', false), FILTER_VALIDATE_BOOLEAN))
+        <script src="https://app.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
+    @else
+        <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
+    @endif
+    
     <style>
         :root {
             --primary: #2563eb;
@@ -321,24 +329,93 @@
             document.getElementById('inp-people').required = true;
         }
 
-        function submitForm() {
+        async function submitForm() {
             const type = document.querySelector('input[name="order_type"]:checked').value;
+            const form = document.getElementById('checkout-form');
             if (type === 'dine_in') {
                 const isTakeaway = document.querySelector('#dinein-toggle select').value === 'takeaway';
                 if (isTakeaway) {
-                    const hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'order_type';
-                    hiddenInput.value = 'takeaway';
-                    document.getElementById('checkout-form').appendChild(hiddenInput);
+                    // Cek apakah sudah ada input hidden order_type=takeaway dari submit sebelumnya
+                    let hiddenInput = document.querySelector('input[type="hidden"][name="order_type"]');
+                    if (!hiddenInput) {
+                        hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = 'order_type';
+                        hiddenInput.value = 'takeaway';
+                        form.appendChild(hiddenInput);
+                    }
                     
                     document.getElementById('inp-table').required = false;
                     document.getElementById('inp-people').required = false;
+                } else {
+                    // Hapus kalau ganti dari takeaway ke dine in
+                    const hiddenInput = document.querySelector('input[type="hidden"][name="order_type"]');
+                    if (hiddenInput) hiddenInput.remove();
                 }
             }
             
-            if(document.getElementById('checkout-form').reportValidity()) {
-                document.getElementById('checkout-form').submit();
+            if(form.reportValidity()) {
+                const btn = document.querySelector('.checkout-btn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '⏳ Memproses...';
+                btn.disabled = true;
+
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (response.status === 422) {
+                        const res = await response.json();
+                        let errors = "⚠️ Kesalahan input:\n";
+                        for (const key in res.errors) {
+                            errors += `- ${res.errors[key][0]}\n`;
+                        }
+                        alert(errors);
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+
+                    const result = await response.json();
+
+                    if (result.status === 'success') {
+                        // Trigger Midtrans Snap popup
+                        window.snap.pay(result.snap_token, {
+                            onSuccess: function(res) {
+                                window.location.href = result.redirect_url;
+                            },
+                            onPending: function(res) {
+                                window.location.href = result.redirect_url;
+                            },
+                            onError: function(res) {
+                                alert("Pembayaran gagal!");
+                                btn.innerHTML = originalText;
+                                btn.disabled = false;
+                            },
+                            onClose: function() {
+                                alert('Anda menutup pop-up tanpa menyelesaikan pembayaran. Pesanan Anda tetap tersimpan.');
+                                window.location.href = result.redirect_url;
+                            }
+                        });
+                    } else {
+                        alert(result.message || "Gagal menghubungi server Midtrans.");
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Terjadi kesalahan jaringan.");
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
             }
         }
     </script>

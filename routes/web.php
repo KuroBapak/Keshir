@@ -25,6 +25,7 @@ Route::get('/', function () {
 Route::get('/menu', [\App\Http\Controllers\PublicMenuController::class, 'index'])->name('public.menu');
 Route::get('/cart', [\App\Http\Controllers\PublicMenuController::class, 'cart'])->name('public.cart');
 Route::post('/cart/add', [\App\Http\Controllers\PublicMenuController::class, 'addToCart'])->name('public.addToCart');
+Route::post('/cart/update', [\App\Http\Controllers\PublicMenuController::class, 'updateCart'])->name('public.updateCart');
 Route::post('/cart/remove', [\App\Http\Controllers\PublicMenuController::class, 'removeFromCart'])->name('public.removeFromCart');
 Route::get('/checkout', [\App\Http\Controllers\PublicMenuController::class, 'checkout'])->name('public.checkout');
 Route::post('/checkout/process', [\App\Http\Controllers\CheckoutController::class, 'process'])->name('public.checkout.process');
