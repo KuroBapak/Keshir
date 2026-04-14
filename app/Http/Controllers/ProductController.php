@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -34,24 +36,36 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
             'tags' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
             'photos' => 'nullable|array|max:5',
             'photos.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
+            'variants' => 'nullable|array',
+            'variants.*.variant_name' => 'nullable|string|max:255',
+            'variants.*.additional_price' => 'nullable|numeric|min:0',
+            'addons' => 'nullable|array',
+            'addons.*.addon_name' => 'nullable|string|max:255',
+            'addons.*.price' => 'nullable|numeric|min:0',
         ]);
 
-        $data = $request->only([
-            'name', 'base_price', 'category_id', 'description', 'tags', 'is_active',
-        ]);
+        $product = DB::transaction(function () use ($request) {
+            $data = $request->only([
+                'name', 'base_price', 'category_id', 'description', 'tags',
+            ]);
+            $data['is_active'] = $request->boolean('is_active');
 
-        if ($request->hasFile('photos')) {
-            $photos = [];
-            foreach ($request->file('photos') as $file) {
-                $photos[] = $file->store('products', 'public');
+            if ($request->hasFile('photos')) {
+                $photos = [];
+                foreach ($request->file('photos') as $file) {
+                    $photos[] = $file->store('products', 'public');
+                }
+                $data['photos'] = $photos;
             }
-            $data['photos'] = $photos;
-        }
 
-        $product = Product::create($data);
+            $product = Product::create($data);
+            $this->syncProductOptions($product, $request->input('variants', []), $request->input('addons', []));
+
+            return $product;
+        });
 
         return redirect()->route('products.show', $product)->with('success', 'Produk berhasil ditambahkan.');
     }
@@ -64,6 +78,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
+        $product->load(['variants', 'addons']);
         $categories = Category::all();
         return view('dashboard.products.form', compact('product', 'categories'));
     }
@@ -76,40 +91,51 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
             'tags' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
             'photos' => 'nullable|array|max:5',
             'photos.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
             'delete_photos' => 'nullable|array',
-        ]);
-
-        $data = $request->only([
-            'name', 'base_price', 'category_id', 'description', 'tags', 'is_active',
+            'variants' => 'nullable|array',
+            'variants.*.variant_name' => 'nullable|string|max:255',
+            'variants.*.additional_price' => 'nullable|numeric|min:0',
+            'addons' => 'nullable|array',
+            'addons.*.addon_name' => 'nullable|string|max:255',
+            'addons.*.price' => 'nullable|numeric|min:0',
         ]);
 
         $currentPhotos = $product->photos ?? [];
+        if ($request->hasFile('photos') && count($currentPhotos) + count($request->file('photos')) > 5) {
+            return back()->withInput()->withErrors(['photos' => 'Maksimal 5 foto per produk.']);
+        }
 
-        if ($request->has('delete_photos')) {
-            foreach ($request->delete_photos as $deletePath) {
-                if (($key = array_search($deletePath, $currentPhotos)) !== false) {
-                    \Storage::disk('public')->delete($deletePath);
-                    unset($currentPhotos[$key]);
+        DB::transaction(function () use ($request, $product) {
+            $data = $request->only([
+                'name', 'base_price', 'category_id', 'description', 'tags',
+            ]);
+            $data['is_active'] = $request->boolean('is_active');
+
+            $currentPhotos = $product->photos ?? [];
+
+            if ($request->has('delete_photos')) {
+                foreach ($request->delete_photos as $deletePath) {
+                    if (($key = array_search($deletePath, $currentPhotos)) !== false) {
+                        Storage::disk('public')->delete($deletePath);
+                        unset($currentPhotos[$key]);
+                    }
+                }
+                $currentPhotos = array_values($currentPhotos);
+            }
+
+            if ($request->hasFile('photos')) {
+                foreach ($request->file('photos') as $file) {
+                    $currentPhotos[] = $file->store('products', 'public');
                 }
             }
-            $currentPhotos = array_values($currentPhotos);
-        }
 
-        if ($request->hasFile('photos')) {
-            // Check max 5 constraint
-            if (count($currentPhotos) + count($request->file('photos')) > 5) {
-                return back()->withInput()->withErrors(['photos' => 'Maksimal 5 foto per produk.']);
-            }
-            foreach ($request->file('photos') as $file) {
-                $currentPhotos[] = $file->store('products', 'public');
-            }
-        }
-
-        $data['photos'] = $currentPhotos;
-        $product->update($data);
+            $data['photos'] = $currentPhotos;
+            $product->update($data);
+            $this->syncProductOptions($product, $request->input('variants', []), $request->input('addons', []));
+        });
 
         return redirect()->route('products.show', $product)->with('success', 'Produk berhasil diupdate.');
     }
@@ -118,10 +144,45 @@ class ProductController extends Controller
     {
         if (is_array($product->photos)) {
             foreach ($product->photos as $photo) {
-                \Storage::disk('public')->delete($photo);
+                Storage::disk('public')->delete($photo);
             }
         }
         $product->delete();
         return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus.');
+    }
+
+    private function syncProductOptions(Product $product, array $variants, array $addons): void
+    {
+        $variantPayload = collect($variants)
+            ->map(function ($variant) {
+                return [
+                    'variant_name' => trim((string) ($variant['variant_name'] ?? '')),
+                    'additional_price' => (float) ($variant['additional_price'] ?? 0),
+                ];
+            })
+            ->filter(fn ($variant) => $variant['variant_name'] !== '')
+            ->values()
+            ->all();
+
+        $addonPayload = collect($addons)
+            ->map(function ($addon) {
+                return [
+                    'addon_name' => trim((string) ($addon['addon_name'] ?? '')),
+                    'price' => (float) ($addon['price'] ?? 0),
+                ];
+            })
+            ->filter(fn ($addon) => $addon['addon_name'] !== '')
+            ->values()
+            ->all();
+
+        $product->variants()->delete();
+        if (!empty($variantPayload)) {
+            $product->variants()->createMany($variantPayload);
+        }
+
+        $product->addons()->delete();
+        if (!empty($addonPayload)) {
+            $product->addons()->createMany($addonPayload);
+        }
     }
 }
