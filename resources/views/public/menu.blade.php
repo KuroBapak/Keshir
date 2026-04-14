@@ -138,13 +138,12 @@
 
         /* Categories */
         .category-row {
-            display: flex;
-            gap: 1.25rem;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
             margin-bottom: 2rem;
-            overflow-x: auto;
             padding-bottom: 0.5rem;
-            flex-shrink: 0; /* Prevents overlap bug */
-            min-height: 80px; /* guarantees space */
+            flex-shrink: 0;
         }
 
         .category-card {
@@ -152,15 +151,16 @@
             border: 2px solid var(--border-color);
             border-radius: 12px;
             padding: 0.5rem 1.5rem 0.5rem 0.5rem;
-            min-width: 180px;
+            width: 100%;
+            min-width: 0;
             display: flex;
             flex-direction: row;
+            flex-wrap: nowrap;
             align-items: center;
             justify-content: flex-start;
             gap: 0.75rem;
             cursor: pointer;
             transition: all 0.2s;
-            flex-shrink: 0;
             height: 64px;
         }
 
@@ -171,8 +171,8 @@
         }
 
         .cat-img-box {
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
             background: var(--primary-bg); /* subtle gray/blue circle */
             border-radius: 50%;
             display: flex;
@@ -184,14 +184,16 @@
         }
 
         .cat-img {
-            width: 28px;
-            height: 28px;
+            width: 36px;
+            height: 36px;
             object-fit: contain;
         }
 
         .cat-text {
             display: flex;
             flex-direction: column;
+            min-width: 0;
+            flex: 1;
         }
 
         .cat-text .cat-name {
@@ -200,12 +202,18 @@
             letter-spacing: -0.5px;
             color: var(--text-dark);
             margin-bottom: 0.1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .cat-text .cat-items {
             font-size: 0.75rem;
             color: var(--text-muted);
             font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .category-card .cat-name {
@@ -266,6 +274,10 @@
             font-size: 1rem;
             margin-bottom: 0.25rem;
             color: var(--text-dark);
+        }
+
+        .product-info {
+            min-width: 0;
         }
 
         .product-price {
@@ -554,13 +566,15 @@
             width: 450px;
             max-width: 90%;
             border-radius: 16px;
-            padding: 1.5rem;
+            padding: 1.25rem;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .pm-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
         .pm-header h3 { font-size: 1.25rem; font-weight: 800; }
         .pm-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
@@ -572,8 +586,92 @@
             display: flex; justify-content: space-between; cursor: pointer;
         }
         .radio-card input { margin-right: 0.5rem; }
-        .pm-notes { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; }
+        .pm-notes {
+            width: 100%;
+            min-height: 74px;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
         .pm-submit { width: 100%; padding: 1rem; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 1rem; }
+
+        .pm-hero {
+            width: 100%;
+            height: 220px;
+            border-radius: 14px;
+            background: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 0.9rem;
+        }
+
+        .pm-hero img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .pm-hero-fallback {
+            font-size: 3rem;
+            opacity: 0.2;
+        }
+
+        .pm-desc {
+            font-size: 0.92rem;
+            color: #374151;
+            line-height: 1.45;
+            margin-bottom: 1rem;
+        }
+
+        .pm-divider {
+            border-top: 1px solid var(--border-color);
+            margin: 0.9rem 0;
+        }
+
+        .pm-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+            position: sticky;
+            bottom: -1.25rem;
+            background: var(--white);
+            padding-top: 0.7rem;
+        }
+
+        .pm-qty-control {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--bg-color);
+            border-radius: 999px;
+            padding: 0.25rem;
+        }
+
+        .pm-qty-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: var(--white);
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .pm-qty-input {
+            width: 34px;
+            text-align: center;
+            border: none;
+            background: transparent;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
 
         /* Payment Choice Modal */
         .payment-modal {
@@ -620,6 +718,440 @@
         }
         
         .d-none { display: none !important; }
+
+        .mobile-cart-bar,
+        .mobile-cart-backdrop,
+        .sidebar-mobile-close,
+        .chatbot-fab,
+        .chatbot-fab-label {
+            display: none;
+        }
+
+        .chatbot-fab {
+            position: fixed;
+            right: 1.5rem;
+            bottom: 1.5rem;
+            z-index: 95;
+            border: none;
+            border-radius: 999px;
+            padding: 0.85rem 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            background: linear-gradient(135deg, #1577ff 0%, #0f63e6 100%);
+            color: var(--white);
+            box-shadow: 0 14px 30px rgba(21, 119, 255, 0.28);
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        .chatbot-fab-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.18);
+            font-size: 1.1rem;
+        }
+
+        .chatbot-fab-label {
+            display: inline-block;
+            font-size: 0.92rem;
+            letter-spacing: 0.2px;
+        }
+
+        .chatbot-toast {
+            position: fixed;
+            right: 1.5rem;
+            bottom: 5.8rem;
+            z-index: 96;
+            display: none;
+            max-width: 240px;
+            background: rgba(17, 24, 39, 0.96);
+            color: var(--white);
+            padding: 0.85rem 1rem;
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
+            font-size: 0.85rem;
+            line-height: 1.35;
+        }
+
+        .chatbot-toast.show {
+            display: block;
+        }
+
+        @media (max-width: 992px) {
+            body {
+                overflow: hidden;
+                background:
+                    radial-gradient(circle at top, rgba(21, 119, 255, 0.14), transparent 30%),
+                    linear-gradient(180deg, #eef5ff 0%, #f7f8fc 20%, #f3f4f6 100%);
+            }
+
+            .top-header {
+                padding: 1rem 1rem 0.95rem;
+                background: linear-gradient(135deg, #1577ff 0%, #0f63e6 100%);
+                color: var(--white);
+                box-shadow: none;
+                border-bottom-left-radius: 18px;
+                border-bottom-right-radius: 18px;
+                position: sticky;
+                top: 0;
+                z-index: 20;
+            }
+
+            .brand-logo {
+                color: var(--white);
+                font-size: 1.55rem;
+                letter-spacing: 0.5px;
+            }
+
+            .date-time {
+                display: none;
+            }
+
+            .header-right {
+                display: none;
+            }
+
+            .main-container {
+                display: block;
+                overflow: hidden;
+            }
+
+            .content-area {
+                padding: 0.8rem 0.8rem 0.9rem;
+                height: calc(100vh - 72px);
+                overflow-y: auto;
+                padding-bottom: 8rem;
+            }
+
+            .search-bar {
+                display: flex;
+                margin-bottom: 0.85rem;
+                border: none;
+                background: rgba(255,255,255,0.92);
+                border-radius: 16px;
+                padding: 0.85rem 1rem;
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            }
+
+            .category-row {
+                gap: 0.45rem;
+                margin-bottom: 0.95rem;
+                padding-bottom: 0;
+            }
+
+            .category-card {
+                height: 50px;
+                padding: 0.35rem 0.5rem;
+                justify-content: center;
+                border-radius: 16px;
+                border-width: 1px;
+                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+                background: rgba(255,255,255,0.95);
+            }
+
+            .cat-img-box {
+                width: 58px;
+                height: 58px;
+            }
+
+            .cat-img {
+                width: 40px;
+                height: 40px;
+            }
+
+            .category-card .cat-img-box,
+            .category-card .cat-items {
+                display: none;
+            }
+
+            .cat-text {
+                display: block;
+                width: 100%;
+                text-align: center;
+            }
+
+            .category-card .cat-name {
+                font-size: 0.95rem;
+                font-weight: 800;
+                margin: 0;
+                letter-spacing: 0;
+            }
+
+            .category-card.active {
+                background: linear-gradient(135deg, #1577ff 0%, #0f63e6 100%);
+                border-color: transparent;
+                box-shadow: 0 10px 24px rgba(21, 119, 255, 0.22);
+            }
+
+            .category-card.active .cat-name {
+                color: var(--white);
+            }
+
+            .product-grid {
+                grid-template-columns: 1fr;
+                gap: 0.7rem;
+            }
+
+            .product-card {
+                border-radius: 20px;
+                border: 1px solid rgba(226, 232, 240, 0.9);
+                min-height: 120px;
+                padding: 0.7rem 4.4rem 0.7rem 0.7rem;
+                display: flex;
+                align-items: center;
+                gap: 0.8rem;
+                box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+                background: rgba(255,255,255,0.96);
+            }
+
+            .product-card:hover {
+                transform: none;
+                box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+                border-color: rgba(226, 232, 240, 0.9);
+            }
+
+            .product-image {
+                width: 82px;
+                height: 82px;
+                margin-bottom: 0;
+                border-radius: 18px;
+                flex-shrink: 0;
+                background: linear-gradient(180deg, #f7f7fb 0%, #edf2ff 100%);
+            }
+
+            .product-name {
+                margin-bottom: 0.15rem;
+                font-size: 1.18rem;
+                line-height: 1.1;
+                font-weight: 800;
+            }
+
+            .product-info {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: flex-start;
+                min-width: 0;
+            }
+
+            .product-price {
+                font-size: 0.9rem;
+                margin-bottom: 0.15rem;
+                color: #6b7280;
+            }
+
+            .product-card .add-btn {
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 46px;
+                height: 100%;
+                border-radius: 0 20px 20px 0;
+                border: none;
+                background: linear-gradient(180deg, #1577ff 0%, #0f63e6 100%);
+                color: var(--white);
+                font-size: 1.75rem;
+                font-weight: 700;
+                box-shadow: inset 1px 0 0 rgba(255,255,255,0.12);
+            }
+
+            .mobile-cart-bar {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 60;
+                background: var(--white);
+                border-top: 1px solid rgba(229,231,235,0.9);
+                box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08);
+                padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+                border-top-left-radius: 20px;
+                border-top-right-radius: 20px;
+            }
+
+            .mobile-cart-total {
+                font-size: 0.95rem;
+                font-weight: 700;
+                display: flex;
+                flex-direction: column;
+                line-height: 1.25;
+            }
+
+            .mobile-cart-total strong {
+                font-size: 1.35rem;
+                font-weight: 900;
+            }
+
+            .mobile-cart-open-btn {
+                border: none;
+                width: 42px;
+                height: 42px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #1577ff 0%, #0f63e6 100%);
+                color: var(--white);
+                font-size: 1.45rem;
+                font-weight: 700;
+                cursor: pointer;
+                box-shadow: 0 8px 18px rgba(21, 119, 255, 0.2);
+            }
+
+            .chatbot-fab {
+                right: 0.9rem;
+                bottom: calc(5.4rem + env(safe-area-inset-bottom));
+                padding: 0.72rem 0.9rem;
+            }
+
+            .chatbot-fab-label {
+                display: inline-block;
+                font-size: 0.85rem;
+            }
+
+            .chatbot-fab-icon {
+                width: 34px;
+                height: 34px;
+                font-size: 1rem;
+            }
+
+            .chatbot-toast {
+                right: 0.9rem;
+                bottom: calc(9.4rem + env(safe-area-inset-bottom));
+                max-width: min(82vw, 260px);
+            }
+
+            .mobile-cart-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.38);
+                backdrop-filter: blur(3px);
+                z-index: 70;
+            }
+
+            .mobile-cart-backdrop.show {
+                display: block;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                right: 0;
+                height: 100vh;
+                width: min(92vw, 430px);
+                margin: 0;
+                border-radius: 16px 0 0 16px;
+                border-left: 1px solid rgba(229,231,235,0.9);
+                z-index: 80;
+                transform: translateX(100%);
+                transition: transform 0.25s ease;
+                overflow-y: auto;
+                box-shadow: -16px 0 40px rgba(15, 23, 42, 0.12);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-mobile-close {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 38px;
+                height: 38px;
+                border-radius: 50%;
+                border: 1px solid var(--border-color);
+                background: var(--white);
+                font-size: 1.2rem;
+                cursor: pointer;
+                margin: 0.85rem 0.85rem 0 auto;
+                box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+            }
+        }
+
+        @media (max-width: 460px) {
+            .brand-logo {
+                font-size: 1.35rem;
+            }
+
+            .product-name {
+                font-size: 1.05rem;
+            }
+
+            .mobile-cart-total strong {
+                font-size: 1.2rem;
+            }
+
+            .chatbot-fab {
+                right: 0.85rem;
+            }
+
+            .product-modal {
+                align-items: flex-end;
+            }
+
+            .pm-content {
+                width: 100%;
+                max-width: 100%;
+                max-height: calc(100vh - 42px);
+                border-radius: 16px 16px 0 0;
+                padding: 1rem;
+            }
+
+            .pm-hero {
+                height: 232px;
+                border-radius: 18px;
+            }
+
+            .pm-header {
+                position: sticky;
+                top: 0;
+                background: var(--white);
+                z-index: 2;
+                padding-bottom: 0.35rem;
+            }
+
+            .pm-header h3 {
+                font-size: 1.55rem;
+                line-height: 1.1;
+            }
+
+            .pm-desc {
+                font-size: 0.95rem;
+            }
+
+            .pm-footer {
+                bottom: -1rem;
+                padding-bottom: env(safe-area-inset-bottom);
+                gap: 0.55rem;
+            }
+
+            .pm-submit {
+                font-size: 0.95rem;
+                padding: 0.95rem 0.85rem;
+                border-radius: 12px;
+            }
+
+            .pm-qty-control {
+                padding: 0.2rem;
+            }
+
+            .pm-qty-btn {
+                width: 28px;
+                height: 28px;
+            }
+
+            .pm-qty-input {
+                width: 30px;
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -691,8 +1223,10 @@
                             <span style="font-size:3rem; opacity:0.1">🍽️</span>
                         @endif
                     </div>
-                    <div class="product-name">{{ $p->name }}</div>
-                    <div class="product-price">Rp {{ number_format($p->base_price, 0, ',', '.') }}</div>
+                    <div class="product-info">
+                        <div class="product-name">{{ $p->name }}</div>
+                        <div class="product-price">Rp {{ number_format($p->base_price, 0, ',', '.') }}</div>
+                    </div>
                     <button class="add-btn">+</button>
                 </div>
                 @endforeach
@@ -701,6 +1235,7 @@
 
         <!-- Right Area (Sidebar / Cart) -->
         <div class="sidebar">
+            <button type="button" class="sidebar-mobile-close" onclick="toggleMobileCart(false)">×</button>
             <form id="checkoutForm" onsubmit="event.preventDefault(); openPaymentModal();">
                 <div class="sidebar-header">
                     <h2>Struk Belanja</h2>
@@ -794,6 +1329,23 @@
         </div>
     </div>
 
+    <div class="mobile-cart-backdrop" id="mobileCartBackdrop" onclick="toggleMobileCart(false)"></div>
+    <div class="mobile-cart-bar">
+        <div class="mobile-cart-total">
+            <span>Total</span>
+            <strong>Rp {{ number_format($grandTotal, 0, ',', '.') }}</strong>
+        </div>
+        <button type="button" class="mobile-cart-open-btn" onclick="toggleMobileCart(true)">→</button>
+    </div>
+
+    <button type="button" class="chatbot-fab" onclick="openChatbotPlaceholder()" aria-label="Chatbot AI">
+        <span class="chatbot-fab-icon">🤖</span>
+        <span class="chatbot-fab-label">Tanya saya!</span>
+    </button>
+    <div class="chatbot-toast" id="chatbotToast">
+        Chatbot AI pelanggan akan ditambahkan di sini.
+    </div>
+
     <!-- Payment Choice Modal -->
     <div class="payment-modal" id="paymentModal" onclick="if(event.target===this) closePaymentModal()">
         <div style="position: absolute; top: 20px; right: 20px;">
@@ -812,6 +1364,13 @@
                 <h3 id="pm-title">Product</h3>
                 <button class="pm-close" onclick="closeProductModal()">×</button>
             </div>
+
+            <div class="pm-hero" id="pm-hero">
+                <span class="pm-hero-fallback" id="pm-hero-fallback">🍽️</span>
+                <img id="pm-image" alt="Detail Produk" style="display:none;">
+            </div>
+
+            <p class="pm-desc" id="pm-desc">Pilih varian dan tambah catatan sesuai selera kamu.</p>
             
             <form id="addToCartForm" action="{{ route('public.addToCart') }}">
                 <input type="hidden" name="product_id" id="pm-pid">
@@ -828,16 +1387,17 @@
 
                 <div class="pm-group">
                     <label>Catatan</label>
-                    <input type="text" name="notes" class="pm-notes" placeholder="Contoh: Kurangi gula...">
+                    <textarea name="notes" class="pm-notes" placeholder="Contoh: less sugar, no ice, dll..."></textarea>
                 </div>
 
-                <div class="pm-group" style="display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem;">
-                    <div style="display:flex; align-items:center; gap:0.5rem; background:var(--bg-color); border-radius:50px; padding:0.25rem;">
-                        <button type="button" style="width:36px;height:36px;border-radius:50%;border:none;font-weight:bold;cursor:pointer;" onclick="let q=document.getElementById('pm-qty'); if(q.value>1)q.value--">−</button>
-                        <input type="number" name="qty" id="pm-qty" value="1" min="1" style="width:40px;text-align:center;border:none;background:transparent;font-weight:bold;" readonly>
-                        <button type="button" style="width:36px;height:36px;border-radius:50%;border:none;font-weight:bold;cursor:pointer;" onclick="let q=document.getElementById('pm-qty'); q.value++">+</button>
+                <div class="pm-divider"></div>
+                <div class="pm-footer">
+                    <div class="pm-qty-control">
+                        <button type="button" class="pm-qty-btn" onclick="let q=document.getElementById('pm-qty'); if(q.value>1)q.value--">−</button>
+                        <input type="number" name="qty" id="pm-qty" value="1" min="1" class="pm-qty-input" readonly>
+                        <button type="button" class="pm-qty-btn" onclick="let q=document.getElementById('pm-qty'); q.value++">+</button>
                     </div>
-                    <button type="button" class="pm-submit" style="width:auto; margin-top:0;" onclick="submitAddToCart()">Tambah ke Pesanan</button>
+                    <button type="button" class="pm-submit" style="margin-top:0;" onclick="submitAddToCart()">Tambah ke Pesanan</button>
                 </div>
             </form>
         </div>
@@ -923,11 +1483,39 @@
             }
         }
 
+        const storageBaseUrl = @json(asset('storage'));
+
+        function getProductImageUrl(product) {
+            if (!product || !Array.isArray(product.photos) || product.photos.length === 0) return null;
+            const firstPhoto = String(product.photos[0] || '');
+            if (!firstPhoto) return null;
+            if (firstPhoto.startsWith('http://') || firstPhoto.startsWith('https://') || firstPhoto.startsWith('/')) {
+                return firstPhoto;
+            }
+            return `${storageBaseUrl}/${firstPhoto}`;
+        }
+
         // Add Product Modal
         function openProductModal(product) {
             document.getElementById('pm-title').innerText = product.name;
             document.getElementById('pm-pid').value = product.id;
             document.getElementById('pm-qty').value = 1;
+
+            const pmImage = document.getElementById('pm-image');
+            const pmFallback = document.getElementById('pm-hero-fallback');
+            const imageUrl = getProductImageUrl(product);
+            if (imageUrl) {
+                pmImage.src = imageUrl;
+                pmImage.style.display = 'block';
+                pmFallback.style.display = 'none';
+            } else {
+                pmImage.src = '';
+                pmImage.style.display = 'none';
+                pmFallback.style.display = 'block';
+            }
+
+            const defaultDesc = `Nikmati ${product.name} dengan rasa terbaik ala Keshir. Bisa pilih varian dan custom catatan sesuai selera.`;
+            document.getElementById('pm-desc').innerText = product.description || defaultDesc;
 
             const vGroup = document.getElementById('pm-v-group');
             const vGrid = document.getElementById('pm-variants');
@@ -958,6 +1546,9 @@
                 aGroup.style.display = 'none';
                 aGrid.innerHTML = '';
             }
+
+            const notesEl = document.querySelector('#addToCartForm textarea[name="notes"]');
+            if (notesEl) notesEl.value = '';
 
             document.getElementById('productModal').classList.add('show');
         }
@@ -1088,6 +1679,43 @@
                 alert('Terjadi kesalahan sistem.');
                 window.location.reload();
             });
+        }
+
+        function toggleMobileCart(show) {
+            const sidebar = document.querySelector('.sidebar');
+            const backdrop = document.getElementById('mobileCartBackdrop');
+            if (!sidebar || !backdrop) return;
+
+            const mobileMode = window.matchMedia('(max-width: 992px)').matches;
+            if (!mobileMode) return;
+
+            sidebar.classList.toggle('open', show);
+            backdrop.classList.toggle('show', show);
+            document.body.style.overflow = show ? 'hidden' : '';
+        }
+
+        window.addEventListener('resize', () => {
+            const mobileMode = window.matchMedia('(max-width: 992px)').matches;
+            if (!mobileMode) {
+                const sidebar = document.querySelector('.sidebar');
+                const backdrop = document.getElementById('mobileCartBackdrop');
+                if (sidebar) sidebar.classList.remove('open');
+                if (backdrop) backdrop.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        });
+
+        let chatbotToastTimer = null;
+
+        function openChatbotPlaceholder() {
+            const toast = document.getElementById('chatbotToast');
+            if (!toast) return;
+
+            toast.classList.add('show');
+            clearTimeout(chatbotToastTimer);
+            chatbotToastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2200);
         }
     </script>
 </body>
