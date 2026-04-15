@@ -55,8 +55,12 @@ Route::post('/absencetemp/checkout', [AttendanceController::class, 'checkOut'])-
 | Authenticated Routes
 |--------------------------------------------------------------------------
 */
+// Logout is outside attendance middleware to avoid circular blocks
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+});
+
+Route::middleware(['auth', 'attendance'])->group(function () {
 
     // Dashboard (Owner & Manager)
     Route::middleware('role:owner,manager')->group(function () {

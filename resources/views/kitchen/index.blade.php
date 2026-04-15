@@ -37,7 +37,7 @@
             background: linear-gradient(180deg, var(--bg) 0%, #e2e8f0 100%);
             color: var(--text); 
             min-height: 100vh;
-            font-size: 14px;
+            font-size: 18px;
         }
         
         /* Modern Navigation - Light */
@@ -106,17 +106,17 @@
         }
         
         .btn {
-            padding: 0.6rem 1.15rem;
+            padding: 0.75rem 1.5rem;
             border: none;
             border-radius: 0.6rem;
             cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 1.1rem;
+            font-weight: 700;
             transition: all 0.25s ease;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.5rem;
         }
         .btn-success { 
             background: linear-gradient(135deg, var(--success) 0%, #059669 100%); 
@@ -146,8 +146,8 @@
             background: rgba(255,255,255,0.25);
             transform: translateY(-1px);
         }
-        .btn-sm { padding: 0.45rem 0.85rem; font-size: 0.8rem; }
-        .btn-xs { padding: 0.4rem 0.7rem; font-size: 0.75rem; }
+        .btn-sm { padding: 0.6rem 1.1rem; font-size: 1rem; }
+        .btn-xs { padding: 0.55rem 1rem; font-size: 0.95rem; }
         
         /* Language Switcher */
         .lang-switcher {
@@ -280,15 +280,15 @@
             background: linear-gradient(135deg, var(--success-light) 0%, #a7f3d0 100%);
         }
         .stat-value { 
-            font-size: 2rem; 
+            font-size: 2.75rem; 
             font-weight: 900; 
             color: var(--text);
             letter-spacing: -0.025em;
         }
         .stat-label { 
-            font-size: 0.8rem; 
+            font-size: 1rem; 
             color: var(--muted); 
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
@@ -348,24 +348,24 @@
             gap: 0.85rem;
         }
         .ticket-header .order-number {
-            font-size: 1.15rem;
-            font-weight: 800;
+            font-size: 1.6rem;
+            font-weight: 900;
             letter-spacing: -0.02em;
         }
         .ticket-header .order-type {
             background: rgba(255,255,255,0.2);
-            padding: 0.35rem 0.85rem;
+            padding: 0.4rem 1rem;
             border-radius: 50px;
-            font-size: 0.75rem;
+            font-size: 1rem;
             font-weight: 700;
             backdrop-filter: blur(10px);
         }
         .ticket-header .timestamp {
-            font-size: 0.8rem;
+            font-size: 1rem;
             opacity: 0.9;
             font-weight: 600;
             background: rgba(0,0,0,0.1);
-            padding: 0.35rem 0.85rem;
+            padding: 0.4rem 1rem;
             border-radius: 50px;
         }
         
@@ -392,7 +392,7 @@
         .item-info { flex: 1; }
         .item-info .name {
             font-weight: 800;
-            font-size: 1rem;
+            font-size: 1.4rem;
             display: flex;
             align-items: center;
             gap: 0.6rem;
@@ -401,37 +401,38 @@
         .item-info .qty {
             background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
             color: #fff;
-            min-width: 28px;
-            height: 28px;
-            border-radius: 8px;
+            min-width: 36px;
+            height: 36px;
+            border-radius: 10px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.85rem;
-            font-weight: 800;
+            font-size: 1.1rem;
+            font-weight: 900;
             box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
         }
         .item-info .variant {
             color: var(--muted);
-            font-weight: 500;
-            font-size: 0.9rem;
+            font-weight: 600;
+            font-size: 1.1rem;
         }
         .item-info .detail {
-            font-size: 0.85rem;
+            font-size: 1.05rem;
             color: var(--muted);
             margin-top: 0.35rem;
-            padding-left: 2.25rem;
+            padding-left: 2.75rem;
+            font-weight: 500;
         }
         .item-info .notes {
-            font-size: 0.85rem;
+            font-size: 1.05rem;
             color: var(--cooking);
             margin-top: 0.5rem;
-            padding: 0.4rem 0.85rem;
-            padding-left: 2.25rem;
+            padding: 0.5rem 1rem;
+            padding-left: 2.75rem;
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
-            font-weight: 600;
+            font-weight: 700;
             background: var(--cooking-light);
             border-radius: 50px;
             margin-left: -0.5rem;
@@ -446,9 +447,9 @@
         .status-badge {
             display: inline-flex;
             align-items: center;
-            padding: 0.4rem 0.9rem;
+            padding: 0.5rem 1.1rem;
             border-radius: 50px;
-            font-size: 0.75rem;
+            font-size: 1rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.03em;
@@ -476,9 +477,9 @@
             background: linear-gradient(135deg, #f8fafc 0%, #fff 100%);
         }
         .ticket-footer .item-count {
-            font-size: 0.85rem;
+            font-size: 1.1rem;
             color: var(--muted);
-            font-weight: 600;
+            font-weight: 700;
         }
         
         /* Empty State - Light */

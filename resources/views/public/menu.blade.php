@@ -286,6 +286,25 @@
             font-weight: 600;
         }
 
+        .product-variants {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-top: 0.35rem;
+        }
+
+        .variant-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 50px;
+            background: var(--primary-bg);
+            color: var(--primary);
+            border: 1px solid rgba(37, 99, 235, 0.15);
+            white-space: nowrap;
+        }
+
         .add-btn {
             position: absolute;
             bottom: 1rem;
@@ -579,13 +598,30 @@
         .pm-header h3 { font-size: 1.25rem; font-weight: 800; }
         .pm-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
         .pm-group { margin-bottom: 1rem; }
-        .pm-group label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .pm-group > label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; }
         .radio-grid { display: grid; gap: 0.5rem; }
         .radio-card {
-            border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 8px;
-            display: flex; justify-content: space-between; cursor: pointer;
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            font-size: 0.9rem;
         }
-        .radio-card input { margin-right: 0.5rem; }
+        .radio-card .rc-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .radio-card .rc-price {
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .radio-card input { margin: 0; }
         .pm-notes {
             width: 100%;
             min-height: 74px;
@@ -1226,6 +1262,13 @@
                     <div class="product-info">
                         <div class="product-name">{{ $p->name }}</div>
                         <div class="product-price">Rp {{ number_format($p->base_price, 0, ',', '.') }}</div>
+                        @if($p->variants && $p->variants->count() > 0)
+                            <div class="product-variants">
+                                @foreach($p->variants as $v)
+                                    <span class="variant-tag">{{ $v->variant_name }} +Rp {{ number_format($v->additional_price, 0, ',', '.') }}</span>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                     <button class="add-btn">+</button>
                 </div>
@@ -1523,8 +1566,8 @@
                 vGroup.style.display = 'block';
                 vGrid.innerHTML = product.variants.map((v, i) => `
                     <label class="radio-card">
-                        <div><input type="radio" name="product_variant_id" value="${v.id}" ${i===0?'checked':''}> <span style="font-weight:600">${v.variant_name}</span></div>
-                        <span style="color:var(--primary); font-weight:bold">+Rp ${new Intl.NumberFormat('id-ID').format(v.additional_price)}</span>
+                        <span class="rc-left"><input type="radio" name="product_variant_id" value="${v.id}" ${i===0?'checked':''}> <span style="font-weight:600">${v.variant_name}</span></span>
+                        <span class="rc-price">+Rp ${new Intl.NumberFormat('id-ID').format(v.additional_price)}</span>
                     </label>
                 `).join('');
             } else {
@@ -1538,8 +1581,8 @@
                 aGroup.style.display = 'block';
                 aGrid.innerHTML = product.addons.map(a => `
                     <label class="radio-card">
-                        <div><input type="checkbox" name="addons[]" value="${a.id}"> <span style="font-weight:600">${a.addon_name}</span></div>
-                        <span style="color:var(--primary); font-weight:bold">+Rp ${new Intl.NumberFormat('id-ID').format(a.price)}</span>
+                        <span class="rc-left"><input type="checkbox" name="addons[]" value="${a.id}"> <span style="font-weight:600">${a.addon_name}</span></span>
+                        <span class="rc-price">+Rp ${new Intl.NumberFormat('id-ID').format(a.price)}</span>
                     </label>
                 `).join('');
             } else {

@@ -1,21 +1,15 @@
-@extends('layouts.app')
+@extends('layouts.attendance')
 
 @section('title', 'Absensi Sementara — Keshir')
 
 @push('styles')
 <style>
-    .attendance-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 2rem 1rem;
-    }
-    
     .attendance-header {
         text-align: center;
         margin-bottom: 2rem;
     }
     .attendance-header h2 {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         font-weight: 800;
         color: var(--text);
         margin-bottom: 0.5rem;
@@ -28,15 +22,28 @@
         color: var(--muted);
         font-size: 0.9rem;
     }
-    
+    .attendance-date {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--primary-50);
+        color: var(--primary-dark);
+        padding: 0.5rem 1.25rem;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-top: 0.75rem;
+        border: 1px solid var(--primary-100);
+    }
+
     .attendance-card {
         background: var(--card);
         border-radius: var(--radius-lg);
         border: 1px solid var(--border);
         overflow: hidden;
-        box-shadow: var(--shadow);
+        box-shadow: var(--shadow-md);
     }
-    
+
     .staff-row {
         display: flex;
         align-items: center;
@@ -46,7 +53,10 @@
     }
     .staff-row:hover { background: var(--bg); }
     .staff-row:last-child { border-bottom: none; }
-    
+    .staff-row.completed {
+        background: #f0fdf4;
+    }
+
     .staff-avatar {
         width: 48px;
         height: 48px;
@@ -59,14 +69,19 @@
         color: #fff;
         margin-right: 1rem;
         flex-shrink: 0;
+        font-weight: 700;
     }
-    
-    .staff-info { flex: 1; }
+    .staff-row.completed .staff-avatar {
+        background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+    }
+
+    .staff-info { flex: 1; min-width: 0; }
     .staff-name { font-weight: 700; font-size: 1rem; color: var(--text); }
-    .staff-role { font-size: 0.85rem; color: var(--muted); margin-top: 0.15rem; }
-    
+    .staff-role { font-size: 0.85rem; color: var(--muted); margin-top: 0.15rem; text-transform: capitalize; }
+
     .staff-status {
         margin-right: 1rem;
+        flex-shrink: 0;
     }
     .status-badge {
         display: inline-flex;
@@ -74,36 +89,87 @@
         gap: 0.35rem;
         padding: 0.45rem 0.85rem;
         border-radius: 50px;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 600;
+        white-space: nowrap;
     }
     .status-badge.checked-in { background: #d1fae5; color: #065f46; }
     .status-badge.done { background: var(--primary-100); color: var(--primary-dark); }
     .status-badge.absent { background: #fee2e2; color: #991b1b; }
-    
+
     .staff-action { flex-shrink: 0; }
     .staff-action .btn {
         min-width: 110px;
     }
-    
+    .staff-action .btn-disabled {
+        background: var(--bg-dark);
+        color: var(--muted);
+        cursor: not-allowed;
+        pointer-events: none;
+        padding: 0.45rem 0.85rem;
+        font-size: 0.8rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
     .attendance-footer {
         text-align: center;
         padding: 1.5rem;
         background: var(--bg);
         border-top: 1px solid var(--border);
     }
-    
-    .alert {
+
+    .attendance-summary {
+        display: flex;
+        gap: 1rem;
         margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+    .summary-card {
+        flex: 1;
+        min-width: 140px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.25rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+    }
+    .summary-card .sc-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1.2;
+    }
+    .summary-card .sc-label {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+    }
+    .summary-card.present .sc-value { color: var(--success); }
+    .summary-card.done .sc-value { color: var(--primary); }
+    .summary-card.absent .sc-value { color: var(--danger); }
+
+    @media (max-width: 640px) {
+        .staff-row { flex-wrap: wrap; gap: 0.75rem; }
+        .staff-status { width: 100%; margin-right: 0; padding-left: 64px; }
+        .staff-action { width: 100%; padding-left: 64px; }
+        .staff-action .btn, .staff-action .btn-disabled { width: 100%; }
+        .attendance-summary { flex-direction: column; }
     }
 </style>
 @endpush
 
 @section('content')
-<div class="attendance-container">
     <div class="attendance-header">
         <h2><span>📋</span> Absensi Staff</h2>
         <p>Halaman absensi sementara untuk fase development. Akan diganti IoT device di production.</p>
+        <div class="attendance-date">
+            📅 {{ now()->translatedFormat('l, d F Y') }} • ⏰ {{ now()->format('H:i') }}
+        </div>
     </div>
 
     @if(session('success'))
@@ -118,12 +184,35 @@
         </div>
     @endif
 
+    {{-- Summary Cards --}}
+    @php
+        $presentCount = $todayLogs->filter(fn($l) => $l->check_in && !$l->check_out)->count();
+        $doneCount = $todayLogs->filter(fn($l) => $l->check_out)->count();
+        $absentCount = $users->count() - $todayLogs->count();
+    @endphp
+    <div class="attendance-summary">
+        <div class="summary-card present">
+            <div class="sc-value">{{ $presentCount }}</div>
+            <div class="sc-label">🟢 Sedang Bekerja</div>
+        </div>
+        <div class="summary-card done">
+            <div class="sc-value">{{ $doneCount }}</div>
+            <div class="sc-label">✅ Selesai Shift</div>
+        </div>
+        <div class="summary-card absent">
+            <div class="sc-value">{{ $absentCount }}</div>
+            <div class="sc-label">⛔ Belum Absen</div>
+        </div>
+    </div>
+
     <div class="attendance-card">
         @foreach($users as $user)
             @php
                 $log = $todayLogs->get($user->id);
+                $isDone = $log && $log->check_out;
+                $isPresent = $log && $log->check_in && !$log->check_out;
             @endphp
-            <div class="staff-row">
+            <div class="staff-row {{ $isDone ? 'completed' : '' }}">
                 <div class="staff-avatar">
                     {{ strtoupper(substr($user->name, 0, 1)) }}
                 </div>
@@ -132,11 +221,11 @@
                     <div class="staff-role">{{ $user->role->name }}</div>
                 </div>
                 <div class="staff-status">
-                    @if($log && $log->check_out)
+                    @if($isDone)
                         <span class="status-badge done">
                             ✅ Selesai ({{ $log->check_in->format('H:i') }} — {{ $log->check_out->format('H:i') }})
                         </span>
-                    @elseif($log && $log->check_in)
+                    @elseif($isPresent)
                         <span class="status-badge checked-in">
                             🟢 Hadir sejak {{ $log->check_in->format('H:i') }}
                         </span>
@@ -148,27 +237,29 @@
                 </div>
                 <div class="staff-action">
                     @if(!$log || !$log->check_in)
+                        {{-- Belum check-in: Tampilkan tombol Check In --}}
                         <form action="{{ route('attendance.checkin') }}" method="POST">
                             @csrf
                             <input type="hidden" name="user_id" value="{{ $user->id }}">
                             <button type="submit" class="btn btn-sm btn-success">✓ Check In</button>
                         </form>
                     @elseif(!$log->check_out)
+                        {{-- Sudah check-in, belum checkout: Tampilkan tombol Check Out --}}
                         <form action="{{ route('attendance.checkout') }}" method="POST">
                             @csrf
                             <input type="hidden" name="user_id" value="{{ $user->id }}">
                             <button type="submit" class="btn btn-sm btn-danger">✗ Check Out</button>
                         </form>
                     @else
-                        <span style="color: var(--muted); font-size: 0.85rem;">—</span>
+                        {{-- Sudah check-out: Tidak bisa apa-apa lagi --}}
+                        <span class="btn-disabled">🔒 Selesai</span>
                     @endif
                 </div>
             </div>
         @endforeach
-        
+
         <div class="attendance-footer">
-            <a href="{{ route('login') }}" class="btn btn-primary">← Ke Halaman Login</a>
+            <a href="{{ route('login') }}" class="btn btn-primary">🔑 Ke Halaman Login</a>
         </div>
     </div>
-</div>
 @endsection
