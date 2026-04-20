@@ -757,12 +757,11 @@
 
         .mobile-cart-bar,
         .mobile-cart-backdrop,
-        .sidebar-mobile-close,
-        .chatbot-fab,
-        .chatbot-fab-label {
+        .sidebar-mobile-close {
             display: none;
         }
 
+        /* Chatbot FAB */
         .chatbot-fab {
             position: fixed;
             right: 1.5rem;
@@ -779,7 +778,13 @@
             box-shadow: 0 14px 30px rgba(21, 119, 255, 0.28);
             cursor: pointer;
             font-weight: 800;
+            transition: all 0.3s cubic-bezier(.4,0,.2,1);
         }
+        .chatbot-fab:hover {
+            transform: scale(1.06);
+            box-shadow: 0 18px 38px rgba(21, 119, 255, 0.35);
+        }
+        .chatbot-fab.hidden { display: none; }
 
         .chatbot-fab-icon {
             width: 38px;
@@ -798,25 +803,157 @@
             letter-spacing: 0.2px;
         }
 
-        .chatbot-toast {
+        /* ===== Chat Panel ===== */
+        .chat-panel {
             position: fixed;
             right: 1.5rem;
-            bottom: 5.8rem;
-            z-index: 96;
+            bottom: 1.5rem;
+            width: 400px;
+            max-width: calc(100vw - 2rem);
+            height: 560px;
+            max-height: calc(100vh - 3rem);
+            z-index: 200;
+            border-radius: 20px;
             display: none;
-            max-width: 240px;
-            background: rgba(17, 24, 39, 0.96);
-            color: var(--white);
-            padding: 0.85rem 1rem;
-            border-radius: 16px;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
-            font-size: 0.85rem;
-            line-height: 1.35;
+            flex-direction: column;
+            overflow: hidden;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(18px) saturate(1.6);
+            -webkit-backdrop-filter: blur(18px) saturate(1.6);
+            border: 1px solid rgba(255,255,255,0.4);
+            box-shadow:
+                0 24px 60px rgba(15, 23, 42, 0.18),
+                0 0 0 1px rgba(21, 119, 255, 0.08);
+            animation: chatSlideUp 0.35s cubic-bezier(.4,0,.2,1);
+        }
+        .chat-panel.open { display: flex; }
+
+        @keyframes chatSlideUp {
+            from { opacity: 0; transform: translateY(24px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        .chatbot-toast.show {
-            display: block;
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.9rem 1rem;
+            background: linear-gradient(135deg, #1577ff 0%, #0f63e6 100%);
+            color: white;
+            flex-shrink: 0;
         }
+        .chat-header-avatar {
+            width: 36px; height: 36px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.15rem;
+        }
+        .chat-header-info { flex: 1; }
+        .chat-header-info h4 { font-size: 0.95rem; font-weight: 800; margin: 0; }
+        .chat-header-info span { font-size: 0.72rem; opacity: 0.8; font-weight: 500; }
+        .chat-close-btn {
+            background: rgba(255,255,255,0.18);
+            border: none; color: white;
+            width: 32px; height: 32px; border-radius: 50%;
+            font-size: 1.15rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+        }
+        .chat-close-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            scroll-behavior: smooth;
+        }
+
+        .chat-bubble {
+            max-width: 85%;
+            padding: 0.7rem 0.9rem;
+            border-radius: 16px;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            word-break: break-word;
+        }
+        .chat-bubble.bot {
+            align-self: flex-start;
+            background: #f0f4ff;
+            color: #1e293b;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-bubble.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #1577ff 0%, #0f63e6 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-bubble.bot strong { color: var(--primary); }
+        .chat-bubble.bot img {
+            max-width: 100%;
+            border-radius: 10px;
+            margin: 0.5rem 0;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            align-self: flex-start;
+            display: flex;
+            gap: 5px;
+            padding: 0.8rem 1rem;
+            background: #f0f4ff;
+            border-radius: 16px 16px 16px 4px;
+        }
+        .typing-indicator span {
+            width: 8px; height: 8px;
+            background: #94a3b8;
+            border-radius: 50%;
+            animation: typingBounce 1.2s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-top: 1px solid rgba(226,232,240,0.7);
+            background: rgba(255,255,255,0.85);
+            flex-shrink: 0;
+        }
+        .chat-input {
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.65rem 0.85rem;
+            font-size: 0.88rem;
+            font-family: inherit;
+            outline: none;
+            background: white;
+            transition: border 0.2s;
+        }
+        .chat-input:focus { border-color: var(--primary); }
+        .chat-send-btn {
+            width: 40px; height: 40px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #1577ff 0%, #0f63e6 100%);
+            color: white; font-size: 1.1rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+        .chat-send-btn:hover { transform: scale(1.08); }
+        .chat-send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         @media (max-width: 992px) {
             body {
@@ -1057,10 +1194,14 @@
                 font-size: 1rem;
             }
 
-            .chatbot-toast {
-                right: 0.9rem;
-                bottom: calc(9.4rem + env(safe-area-inset-bottom));
-                max-width: min(82vw, 260px);
+            .chat-panel {
+                right: 0;
+                bottom: 0;
+                width: 100vw;
+                max-width: 100vw;
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
             }
 
             .mobile-cart-backdrop {
@@ -1126,6 +1267,9 @@
 
             .chatbot-fab {
                 right: 0.85rem;
+            }
+            .chat-panel {
+                border-radius: 0;
             }
 
             .product-modal {
@@ -1381,12 +1525,29 @@
         <button type="button" class="mobile-cart-open-btn" onclick="toggleMobileCart(true)">→</button>
     </div>
 
-    <button type="button" class="chatbot-fab" onclick="openChatbotPlaceholder()" aria-label="Chatbot AI">
+    <!-- Chatbot FAB Button -->
+    <button type="button" class="chatbot-fab" id="chatbotFab" onclick="toggleChatPanel(true)" aria-label="Chatbot AI">
         <span class="chatbot-fab-icon">🤖</span>
         <span class="chatbot-fab-label">Tanya saya!</span>
     </button>
-    <div class="chatbot-toast" id="chatbotToast">
-        Chatbot AI pelanggan akan ditambahkan di sini.
+
+    <!-- Chat Panel -->
+    <div class="chat-panel" id="chatPanel">
+        <div class="chat-header">
+            <div class="chat-header-avatar">🤖</div>
+            <div class="chat-header-info">
+                <h4>Asisten Keshir</h4>
+                <span>AI Pelayan Virtual • Siap membantu!</span>
+            </div>
+            <button class="chat-close-btn" onclick="toggleChatPanel(false)">✕</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-bubble bot">Halo! 👋 Saya asisten virtual <strong>Keshir Coffee Shop</strong>.<br><br>Mau tanya menu, rekomendasi, atau info harga? Silakan ketik di bawah! ☕</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Ketik pesan..." autocomplete="off">
+            <button class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage()">➤</button>
+        </div>
     </div>
 
     <!-- Payment Choice Modal -->
@@ -1657,6 +1818,15 @@
                 document.getElementById('checkoutForm').reportValidity();
                 return;
             }
+
+            // Bug fix: Validate table is selected for dine_in
+            const orderType = document.getElementById('order_type').value;
+            const tableId = document.getElementById('table_id').value;
+            if (orderType === 'dine_in' && !tableId) {
+                alert('Silakan pilih meja terlebih dahulu untuk Dine In.');
+                return;
+            }
+
             document.getElementById('paymentModal').classList.add('show');
         }
         function closePaymentModal() {
@@ -1668,7 +1838,13 @@
             const form = document.getElementById('checkoutForm');
             const formData = new FormData(form);
             formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-            formData.append('payment_method', paymentMethod); // Custom field for future backend processing
+            formData.append('payment_method', paymentMethod);
+
+            // Bug fix: Remove table_id for takeaway to prevent backend validation error
+            if (formData.get('order_type') === 'takeaway') {
+                formData.delete('table_id');
+                formData.delete('people_count');
+            }
             
             closePaymentModal();
             
@@ -1748,17 +1924,134 @@
             }
         });
 
-        let chatbotToastTimer = null;
+        // =============================================
+        // CHATBOT AI — Full Chat Widget
+        // =============================================
+        const chatPanel = document.getElementById('chatPanel');
+        const chatFab = document.getElementById('chatbotFab');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        let conversationHistory = [];
+        let isSending = false;
 
-        function openChatbotPlaceholder() {
-            const toast = document.getElementById('chatbotToast');
-            if (!toast) return;
+        function toggleChatPanel(show) {
+            if (show) {
+                chatPanel.classList.add('open');
+                chatFab.classList.add('hidden');
+                setTimeout(() => chatInput.focus(), 350);
+            } else {
+                chatPanel.classList.remove('open');
+                chatFab.classList.remove('hidden');
+            }
+        }
 
-            toast.classList.add('show');
-            clearTimeout(chatbotToastTimer);
-            chatbotToastTimer = setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2200);
+        // Send on Enter key
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addBubble(text, type) {
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble ' + type;
+            if (type === 'bot') {
+                bubble.innerHTML = renderMarkdown(text);
+            } else {
+                bubble.textContent = text;
+            }
+            chatMessages.appendChild(bubble);
+            scrollToBottom();
+            return bubble;
+        }
+
+        function showTyping() {
+            const el = document.createElement('div');
+            el.className = 'typing-indicator';
+            el.id = 'typingIndicator';
+            el.innerHTML = '<span></span><span></span><span></span>';
+            chatMessages.appendChild(el);
+            scrollToBottom();
+        }
+
+        function hideTyping() {
+            const el = document.getElementById('typingIndicator');
+            if (el) el.remove();
+        }
+
+        // Simple markdown renderer for bot responses
+        function renderMarkdown(text) {
+            if (!text) return '';
+            let html = text
+                // Images: ![alt](url)
+                .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
+                // Bold: **text**
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                // Italic: *text*
+                .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+                // Line breaks
+                .replace(/\n/g, '<br>');
+            return html;
+        }
+
+        async function sendChatMessage() {
+            const msg = chatInput.value.trim();
+            if (!msg || isSending) return;
+
+            isSending = true;
+            chatInput.value = '';
+            chatSendBtn.disabled = true;
+
+            // Add user bubble
+            addBubble(msg, 'user');
+
+            // Save to history
+            conversationHistory.push({ role: 'user', content: msg });
+
+            // Show typing
+            showTyping();
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                const response = await fetch('/api/v1/chatbot/message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({
+                        message: msg,
+                        conversation_history: conversationHistory.slice(-10),
+                        role: 'customer'
+                    })
+                });
+
+                hideTyping();
+
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.message) {
+                    addBubble(result.data.message, 'bot');
+                    conversationHistory.push({ role: 'assistant', content: result.data.message });
+                } else {
+                    addBubble(result.data?.message || 'Maaf, terjadi kesalahan. Coba lagi ya! 🙏', 'bot');
+                }
+            } catch (err) {
+                hideTyping();
+                console.error('Chatbot error:', err);
+                addBubble('Maaf, tidak bisa terhubung ke server AI. Pastikan Ollama sedang berjalan. 🔌', 'bot');
+            } finally {
+                isSending = false;
+                chatSendBtn.disabled = false;
+                chatInput.focus();
+            }
         }
     </script>
 </body>

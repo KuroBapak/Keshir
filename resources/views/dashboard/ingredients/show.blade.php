@@ -70,9 +70,12 @@ function togglePackLabel(select) {
                 <td>{{ $b->expiry_date->format('d M Y') }}</td>
                 <td>Rp {{ number_format($b->purchase_price, 0, ',', '.') }}</td>
                 <td>
-                    @if($b->isExpired()) <span class="badge badge-danger">❌ Expired</span>
-                    @elseif($b->expiry_date->diffInDays(now()) <= 7) <span class="badge badge-warning">⚠️ Hampir Exp</span>
-                    @else <span class="badge badge-success">✅ OK</span> @endif
+                    @php
+                        $daysUntilExpiry = now()->startOfDay()->diffInDays($b->expiry_date->startOfDay(), false);
+                    @endphp
+                    @if($daysUntilExpiry < 0) <span class="badge badge-danger">❌ Expired ({{ abs($daysUntilExpiry) }} hari lalu)</span>
+                    @elseif($daysUntilExpiry <= 7) <span class="badge badge-warning">⚠️ Hampir Exp ({{ $daysUntilExpiry }} hari lagi)</span>
+                    @else <span class="badge badge-success">✅ OK ({{ $daysUntilExpiry }} hari lagi)</span> @endif
                 </td>
             </tr>
             @empty
