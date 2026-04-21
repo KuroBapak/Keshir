@@ -828,6 +828,9 @@
             <a href="{{ route('settings.index') }}" class="{{ request()->routeIs('settings.*') ? 'active' : '' }}">
                 <span class="icon">⚙️</span> <span data-i18n="settings">Pengaturan</span>
             </a>
+            <a href="{{ route('attendance.management') }}" class="{{ request()->routeIs('attendance.management') ? 'active' : '' }}">
+                <span class="icon">📋</span> <span data-i18n="attendance">Absensi</span>
+            </a>
             <div class="section-title" data-i18n="reports">Laporan</div>
             <a href="{{ route('reports.daily') }}" class="{{ request()->routeIs('reports.daily') ? 'active' : '' }}">
                 <span class="icon">📊</span> <span data-i18n="daily_report">Laporan Harian</span>

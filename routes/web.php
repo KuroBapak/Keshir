@@ -90,6 +90,9 @@ Route::middleware(['auth', 'attendance'])->group(function () {
         Route::resource('discounts', DiscountController::class)->except(['show', 'create', 'edit']);
         Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
         Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
+
+        // Attendance Management
+        Route::get('attendance', [AttendanceController::class, 'management'])->name('attendance.management');
     });
     // Cash Drawer (Cashier+)
     Route::middleware('role:owner,manager,cashier')->prefix('cash-drawer')->group(function () {

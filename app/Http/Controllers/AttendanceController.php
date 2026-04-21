@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AttendanceLog;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
@@ -23,6 +24,113 @@ class AttendanceController extends Controller
             ->keyBy('user_id');
 
         return view('attendance.temp', compact('users', 'todayLogs'));
+    }
+
+    /**
+     * Attendance management for owner/manager.
+     * Shows history, stats, and counting.
+     */
+    public function management(Request $request)
+    {
+        // Staff users (non-owner)
+        $staffUsers = User::with('role')
+            ->whereHas('role', fn($q) => $q->where('name', '!=', 'owner'))
+            ->get();
+
+        // Date range filter (default: current month)
+        $startDate = $request->get('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->get('end_date', now()->toDateString());
+        $filterUser = $request->get('user_id', '');
+
+        // Query attendance logs
+        $query = AttendanceLog::with('user.role')
+            ->whereBetween('date', [$startDate, $endDate])
+            ->orderBy('date', 'desc')
+            ->orderBy('check_in', 'desc');
+
+        if ($filterUser) {
+            $query->where('user_id', $filterUser);
+        }
+
+        $logs = $query->get();
+
+        // === TODAY's STATUS ===
+        $todayLogs = AttendanceLog::with('user')
+            ->where('date', now()->toDateString())
+            ->get()
+            ->keyBy('user_id');
+
+        $todayPresent = $todayLogs->filter(fn($l) => $l->check_in && !$l->check_out)->count();
+        $todayDone = $todayLogs->filter(fn($l) => $l->check_out)->count();
+        $todayAbsent = $staffUsers->count() - $todayLogs->count();
+
+        // === PERIOD STATS ===
+        $totalWorkDays = Carbon::parse($startDate)->diffInDaysFiltered(
+            fn(Carbon $date) => !$date->isWeekend(),
+            Carbon::parse($endDate)->addDay()
+        );
+
+        // Expected attendance = work days * staff count
+        $staffCount = $filterUser ? 1 : $staffUsers->count();
+        $expectedAttendance = $totalWorkDays * $staffCount;
+
+        $totalPresent = $logs->count();
+        $totalCompleted = $logs->filter(fn($l) => $l->check_in && $l->check_out)->count();
+        $totalAlpha = max(0, $expectedAttendance - $totalPresent);
+
+        // Average work duration (only completed shifts)
+        $completedLogs = $logs->filter(fn($l) => $l->check_in && $l->check_out);
+        $totalMinutes = $completedLogs->sum(function ($log) {
+            return $log->check_in->diffInMinutes($log->check_out);
+        });
+        $avgMinutes = $completedLogs->count() > 0 ? round($totalMinutes / $completedLogs->count()) : 0;
+        $avgHours = floor($avgMinutes / 60);
+        $avgMins = $avgMinutes % 60;
+
+        // Attendance rate
+        $attendanceRate = $expectedAttendance > 0
+            ? round(($totalPresent / $expectedAttendance) * 100, 1)
+            : 0;
+
+        // Per-staff monthly recap (for the selected period)
+        $staffRecap = [];
+        foreach ($staffUsers as $staff) {
+            if ($filterUser && $staff->id != $filterUser) continue;
+            
+            $staffLogs = $logs->where('user_id', $staff->id);
+            $staffCompleted = $staffLogs->filter(fn($l) => $l->check_in && $l->check_out);
+            $staffTotalMinutes = $staffCompleted->sum(fn($l) => $l->check_in->diffInMinutes($l->check_out));
+            
+            $staffRecap[] = [
+                'user' => $staff,
+                'total_present' => $staffLogs->count(),
+                'total_completed' => $staffCompleted->count(),
+                'total_alpha' => max(0, $totalWorkDays - $staffLogs->count()),
+                'avg_hours' => $staffCompleted->count() > 0
+                    ? round($staffTotalMinutes / $staffCompleted->count() / 60, 1)
+                    : 0,
+                'total_hours' => round($staffTotalMinutes / 60, 1),
+            ];
+        }
+
+        $stats = [
+            'today_present' => $todayPresent,
+            'today_done' => $todayDone,
+            'today_absent' => $todayAbsent,
+            'total_present' => $totalPresent,
+            'total_completed' => $totalCompleted,
+            'total_alpha' => $totalAlpha,
+            'avg_hours' => $avgHours,
+            'avg_mins' => $avgMins,
+            'attendance_rate' => $attendanceRate,
+            'work_days' => $totalWorkDays,
+            'staff_count' => $staffCount,
+        ];
+
+        return view('dashboard.attendance.index', compact(
+            'logs', 'staffUsers', 'stats', 'staffRecap',
+            'startDate', 'endDate', 'filterUser', 'todayLogs'
+        ));
     }
 
     /**
