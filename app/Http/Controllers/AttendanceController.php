@@ -181,4 +181,46 @@ class AttendanceController extends Controller
 
         return back()->with('success', 'Check-out berhasil!');
     }
+
+    /**
+     * Reset check-out for a staff user.
+     * Owner & Manager can do this, but manager cannot reset their own check-out.
+     */
+    public function resetCheckout(AttendanceLog $attendanceLog)
+    {
+        $currentUser = auth()->user();
+
+        // Manager cannot reset their own check-out (must ask owner)
+        if (!$currentUser->isOwner() && $attendanceLog->user_id === $currentUser->id) {
+            return back()->with('error', 'Anda tidak bisa mereset check-out milik sendiri. Hubungi Owner.');
+        }
+
+        if (!$attendanceLog->check_out) {
+            return back()->with('info', 'Record ini belum memiliki check-out.');
+        }
+
+        $staffName = $attendanceLog->user->name ?? 'Unknown';
+        $attendanceLog->update(['check_out' => null]);
+
+        return back()->with('success', "Check-out untuk {$staffName} berhasil direset. Staff bisa melanjutkan kerja.");
+    }
+
+    /**
+     * Delete an attendance record.
+     * Only owner can delete.
+     */
+    public function destroy(AttendanceLog $attendanceLog)
+    {
+        $currentUser = auth()->user();
+
+        if (!$currentUser->isOwner()) {
+            abort(403, 'Hanya Owner yang bisa menghapus data absensi.');
+        }
+
+        $staffName = $attendanceLog->user->name ?? 'Unknown';
+        $date = $attendanceLog->date;
+        $attendanceLog->delete();
+
+        return back()->with('success', "Data absensi {$staffName} tanggal {$date} berhasil dihapus.");
+    }
 }

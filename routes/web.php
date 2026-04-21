@@ -93,6 +93,12 @@ Route::middleware(['auth', 'attendance'])->group(function () {
 
         // Attendance Management
         Route::get('attendance', [AttendanceController::class, 'management'])->name('attendance.management');
+        Route::patch('attendance/{attendanceLog}/reset-checkout', [AttendanceController::class, 'resetCheckout'])->name('attendance.reset-checkout');
+    });
+
+    // Attendance Delete (Owner Only)
+    Route::middleware('role:owner')->group(function () {
+        Route::delete('attendance/{attendanceLog}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
     });
     // Cash Drawer (Cashier+)
     Route::middleware('role:owner,manager,cashier')->prefix('cash-drawer')->group(function () {

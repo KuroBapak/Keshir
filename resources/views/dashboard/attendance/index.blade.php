@@ -366,6 +366,51 @@
     .empty-state-att .icon { font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.4; }
     .empty-state-att p { color: var(--muted); font-size: 0.9rem; }
 
+    /* Action buttons */
+    .action-group {
+        display: flex;
+        gap: 0.35rem;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.65rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+    .btn-action:hover {
+        transform: translateY(-1px);
+    }
+    .btn-reset {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+    .btn-reset:hover {
+        background: #fde68a;
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+    }
+    .btn-delete {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+    .btn-delete:hover {
+        background: #fecaca;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .att-header { flex-direction: column; }
@@ -504,6 +549,7 @@
                         <th>Durasi</th>
                         <th>Sumber</th>
                         <th>Status</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -570,10 +616,42 @@
                                 <span class="badge badge-danger">❌ Tidak Lengkap</span>
                             @endif
                         </td>
+                        <td>
+                            <div class="action-group">
+                                @if($log->check_out)
+                                    {{-- Reset Checkout: Owner can always, Manager can for others (not self) --}}
+                                    @php
+                                        $canReset = auth()->user()->isOwner() || 
+                                            (auth()->user()->role->name === 'manager' && $log->user_id !== auth()->id());
+                                    @endphp
+                                    @if($canReset)
+                                        <form action="{{ route('attendance.reset-checkout', $log) }}" method="POST" 
+                                              onsubmit="return confirm('Reset check-out untuk {{ $log->user->name }}?\nStaff akan bisa melanjutkan kerja.')">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn-action btn-reset" title="Reset Check-out">
+                                                🔄 Reset
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endif
+
+                                @if(auth()->user()->isOwner())
+                                    <form action="{{ route('attendance.destroy', $log) }}" method="POST"
+                                          onsubmit="return confirm('⚠️ HAPUS data absensi {{ $log->user->name }} tanggal {{ $log->date }}?\nAksi ini tidak bisa dibatalkan!')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn-action btn-delete" title="Hapus Record">
+                                            🗑️ Hapus
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7">
+                        <td colspan="8">
                             <div class="empty-state-att">
                                 <div class="icon">📋</div>
                                 <p>Tidak ada data absensi untuk periode ini.</p>
