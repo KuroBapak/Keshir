@@ -50,9 +50,17 @@ class OllamaChatService
 
             // Check if Ollama wants to call a tool
             if (!empty($assistantMessage['tool_calls'])) {
+                // Fix empty arguments for JSON encoding to Ollama (PHP [] -> JSON [])
+                foreach ($assistantMessage['tool_calls'] as &$tc) {
+                    if (empty($tc['function']['arguments'])) {
+                        $tc['function']['arguments'] = new \stdClass();
+                    }
+                }
+                unset($tc);
+
                 $toolCall = $assistantMessage['tool_calls'][0];
                 $functionName = $toolCall['function']['name'];
-                $functionArgs = $toolCall['function']['arguments'] ?? [];
+                $functionArgs = (array) ($toolCall['function']['arguments'] ?? []);
 
                 // Execute the function
                 $functionResult = $this->executeFunctionCall($functionName, $functionArgs);
@@ -418,7 +426,7 @@ PROMPT;
                     'description' => 'Mengambil daftar promo/diskon yang sedang aktif. Gunakan ketika pelanggan bertanya tentang promo, diskon, potongan harga, atau penawaran spesial.',
                     'parameters' => [
                         'type' => 'object',
-                        'properties' => [],
+                        'properties' => new \stdClass(),
                     ],
                 ],
             ],
@@ -429,7 +437,7 @@ PROMPT;
                     'description' => 'Mengecek meja yang tersedia untuk dine-in. Gunakan ketika pelanggan bertanya tentang ketersediaan meja, tempat duduk, atau mau makan di tempat.',
                     'parameters' => [
                         'type' => 'object',
-                        'properties' => [],
+                        'properties' => new \stdClass(),
                     ],
                 ],
             ],
