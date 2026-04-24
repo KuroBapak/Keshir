@@ -95,51 +95,51 @@ class CoffeeShopSeeder extends Seeder
 
         $products = [
             // Hot Coffee
-            ['name' => 'Espresso', 'base_price' => 18000, 'category_id' => $hotCoffee->id, 'description' => 'Single shot of rich espresso', 'tags' => 'classic,strong'],
-            ['name' => 'Americano', 'base_price' => 22000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso diluted with hot water', 'tags' => 'classic'],
-            ['name' => 'Cappuccino', 'base_price' => 28000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with steamed milk foam', 'tags' => 'classic,recommended'],
-            ['name' => 'Latte', 'base_price' => 30000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with steamed milk', 'tags' => 'classic,recommended'],
-            ['name' => 'Mocha', 'base_price' => 35000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with chocolate and steamed milk', 'tags' => 'sweet'],
-            ['name' => 'Vanilla Latte', 'base_price' => 35000, 'category_id' => $hotCoffee->id, 'description' => 'Latte with vanilla syrup', 'tags' => 'sweet'],
-            ['name' => 'Caramel Macchiato', 'base_price' => 38000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with vanilla, milk, and caramel drizzle', 'tags' => 'sweet,recommended'],
-            ['name' => 'Hazelnut Latte', 'base_price' => 36000, 'category_id' => $hotCoffee->id, 'description' => 'Latte with hazelnut syrup', 'tags' => 'sweet'],
+            ['name' => 'Espresso', 'base_price' => 18000, 'category_id' => $hotCoffee->id, 'description' => 'Single shot of rich espresso', 'tags' => 'classic,strong', 'photos' => ['https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=80']],
+            ['name' => 'Americano', 'base_price' => 22000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso diluted with hot water', 'tags' => 'classic', 'photos' => ['https://images.unsplash.com/photo-1521302080334-4bebac2763a6?w=400&q=80']],
+            ['name' => 'Cappuccino', 'base_price' => 28000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with steamed milk foam', 'tags' => 'classic,recommended', 'photos' => ['https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80']],
+            ['name' => 'Latte', 'base_price' => 30000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with steamed milk', 'tags' => 'classic,recommended', 'photos' => ['https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80']],
+            ['name' => 'Mocha', 'base_price' => 35000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with chocolate and steamed milk', 'tags' => 'sweet', 'photos' => ['https://images.unsplash.com/photo-1578314675249-a6910f80cc4e?w=400&q=80']],
+            ['name' => 'Vanilla Latte', 'base_price' => 35000, 'category_id' => $hotCoffee->id, 'description' => 'Latte with vanilla syrup', 'tags' => 'sweet', 'photos' => ['https://images.unsplash.com/photo-1587080413959-06b859fb107d?w=400&q=80']],
+            ['name' => 'Caramel Macchiato', 'base_price' => 38000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with vanilla, milk, and caramel drizzle', 'tags' => 'sweet,recommended', 'photos' => ['https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=400&q=80']],
+            ['name' => 'Hazelnut Latte', 'base_price' => 36000, 'category_id' => $hotCoffee->id, 'description' => 'Latte with hazelnut syrup', 'tags' => 'sweet', 'photos' => ['https://images.unsplash.com/photo-1534687941688-651ccaafbff8?w=400&q=80']],
             
             // Iced Coffee
-            ['name' => 'Iced Americano', 'base_price' => 25000, 'category_id' => $icedCoffee->id, 'description' => 'Chilled espresso with cold water and ice', 'tags' => 'classic,refreshing'],
-            ['name' => 'Iced Latte', 'base_price' => 32000, 'category_id' => $icedCoffee->id, 'description' => 'Espresso with cold milk over ice', 'tags' => 'classic,refreshing'],
-            ['name' => 'Iced Mocha', 'base_price' => 38000, 'category_id' => $icedCoffee->id, 'description' => 'Iced chocolate coffee with whipped cream', 'tags' => 'sweet,refreshing'],
-            ['name' => 'Iced Caramel Latte', 'base_price' => 38000, 'category_id' => $icedCoffee->id, 'description' => 'Iced latte with caramel syrup', 'tags' => 'sweet'],
-            ['name' => 'Vietnamese Coffee', 'base_price' => 28000, 'category_id' => $icedCoffee->id, 'description' => 'Strong coffee with condensed milk', 'tags' => 'sweet,strong'],
-            ['name' => 'Es Kopi Susu', 'base_price' => 25000, 'category_id' => $icedCoffee->id, 'description' => 'Indonesian style iced milk coffee', 'tags' => 'local,recommended'],
-            ['name' => 'Brown Sugar Latte', 'base_price' => 35000, 'category_id' => $icedCoffee->id, 'description' => 'Iced latte with brown sugar syrup', 'tags' => 'sweet,trending'],
+            ['name' => 'Iced Americano', 'base_price' => 25000, 'category_id' => $icedCoffee->id, 'description' => 'Chilled espresso with cold water and ice', 'tags' => 'classic,refreshing', 'photos' => ['https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=400&q=80']],
+            ['name' => 'Iced Latte', 'base_price' => 32000, 'category_id' => $icedCoffee->id, 'description' => 'Espresso with cold milk over ice', 'tags' => 'classic,refreshing', 'photos' => ['https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80']],
+            ['name' => 'Iced Mocha', 'base_price' => 38000, 'category_id' => $icedCoffee->id, 'description' => 'Iced chocolate coffee with whipped cream', 'tags' => 'sweet,refreshing', 'photos' => ['https://images.unsplash.com/photo-1592663527359-cf6642f54cff?w=400&q=80']],
+            ['name' => 'Iced Caramel Latte', 'base_price' => 38000, 'category_id' => $icedCoffee->id, 'description' => 'Iced latte with caramel syrup', 'tags' => 'sweet', 'photos' => ['https://images.unsplash.com/photo-1553909489-cd47e0907980?w=400&q=80']],
+            ['name' => 'Vietnamese Coffee', 'base_price' => 28000, 'category_id' => $icedCoffee->id, 'description' => 'Strong coffee with condensed milk', 'tags' => 'sweet,strong', 'photos' => ['https://images.unsplash.com/photo-1514432324607-a09d9b4aefda?w=400&q=80']],
+            ['name' => 'Es Kopi Susu', 'base_price' => 25000, 'category_id' => $icedCoffee->id, 'description' => 'Indonesian style iced milk coffee', 'tags' => 'local,recommended', 'photos' => ['https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80']],
+            ['name' => 'Brown Sugar Latte', 'base_price' => 35000, 'category_id' => $icedCoffee->id, 'description' => 'Iced latte with brown sugar syrup', 'tags' => 'sweet,trending', 'photos' => ['https://images.unsplash.com/photo-1592663527359-cf6642f54cff?w=400&q=80']],
             
             // Non-Coffee
-            ['name' => 'Hot Chocolate', 'base_price' => 28000, 'category_id' => $nonCoffee->id, 'description' => 'Rich hot chocolate drink', 'tags' => 'sweet,kids'],
-            ['name' => 'Iced Chocolate', 'base_price' => 30000, 'category_id' => $nonCoffee->id, 'description' => 'Chilled chocolate milk', 'tags' => 'sweet,kids,refreshing'],
-            ['name' => 'Matcha Latte', 'base_price' => 35000, 'category_id' => $nonCoffee->id, 'description' => 'Japanese green tea latte', 'tags' => 'healthy,trending'],
-            ['name' => 'Iced Matcha Latte', 'base_price' => 38000, 'category_id' => $nonCoffee->id, 'description' => 'Chilled matcha with milk', 'tags' => 'healthy,refreshing'],
+            ['name' => 'Hot Chocolate', 'base_price' => 28000, 'category_id' => $nonCoffee->id, 'description' => 'Rich hot chocolate drink', 'tags' => 'sweet,kids', 'photos' => ['https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=400&q=80']],
+            ['name' => 'Iced Chocolate', 'base_price' => 30000, 'category_id' => $nonCoffee->id, 'description' => 'Chilled chocolate milk', 'tags' => 'sweet,kids,refreshing', 'photos' => ['https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=80']],
+            ['name' => 'Matcha Latte', 'base_price' => 35000, 'category_id' => $nonCoffee->id, 'description' => 'Japanese green tea latte', 'tags' => 'healthy,trending', 'photos' => ['https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=400&q=80']],
+            ['name' => 'Iced Matcha Latte', 'base_price' => 38000, 'category_id' => $nonCoffee->id, 'description' => 'Chilled matcha with milk', 'tags' => 'healthy,refreshing', 'photos' => ['https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=400&q=80']],
             
             // Tea
-            ['name' => 'Hot Green Tea', 'base_price' => 18000, 'category_id' => $tea->id, 'description' => 'Traditional green tea', 'tags' => 'healthy,classic'],
-            ['name' => 'Jasmine Tea', 'base_price' => 20000, 'category_id' => $tea->id, 'description' => 'Fragrant jasmine tea', 'tags' => 'healthy'],
-            ['name' => 'Iced Lemon Tea', 'base_price' => 22000, 'category_id' => $tea->id, 'description' => 'Refreshing iced tea with lemon', 'tags' => 'refreshing'],
-            ['name' => 'Thai Tea', 'base_price' => 28000, 'category_id' => $tea->id, 'description' => 'Creamy Thai-style iced tea', 'tags' => 'sweet,trending'],
+            ['name' => 'Hot Green Tea', 'base_price' => 18000, 'category_id' => $tea->id, 'description' => 'Traditional green tea', 'tags' => 'healthy,classic', 'photos' => ['https://images.unsplash.com/photo-1556881286-fc6915169721?w=400&q=80']],
+            ['name' => 'Jasmine Tea', 'base_price' => 20000, 'category_id' => $tea->id, 'description' => 'Fragrant jasmine tea', 'tags' => 'healthy', 'photos' => ['https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=400&q=80']],
+            ['name' => 'Iced Lemon Tea', 'base_price' => 22000, 'category_id' => $tea->id, 'description' => 'Refreshing iced tea with lemon', 'tags' => 'refreshing', 'photos' => ['https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80']],
+            ['name' => 'Thai Tea', 'base_price' => 28000, 'category_id' => $tea->id, 'description' => 'Creamy Thai-style iced tea', 'tags' => 'sweet,trending', 'photos' => ['https://images.unsplash.com/photo-1558857563-b371033873b8?w=400&q=80']],
             
             // Frappe & Blended
-            ['name' => 'Coffee Frappe', 'base_price' => 38000, 'category_id' => $frappe->id, 'description' => 'Blended iced coffee', 'tags' => 'sweet,refreshing'],
-            ['name' => 'Mocha Frappe', 'base_price' => 42000, 'category_id' => $frappe->id, 'description' => 'Blended mocha with whipped cream', 'tags' => 'sweet'],
-            ['name' => 'Caramel Frappe', 'base_price' => 42000, 'category_id' => $frappe->id, 'description' => 'Blended caramel coffee', 'tags' => 'sweet'],
-            ['name' => 'Matcha Frappe', 'base_price' => 40000, 'category_id' => $frappe->id, 'description' => 'Blended matcha green tea', 'tags' => 'healthy'],
+            ['name' => 'Coffee Frappe', 'base_price' => 38000, 'category_id' => $frappe->id, 'description' => 'Blended iced coffee', 'tags' => 'sweet,refreshing', 'photos' => ['https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80']],
+            ['name' => 'Mocha Frappe', 'base_price' => 42000, 'category_id' => $frappe->id, 'description' => 'Blended mocha with whipped cream', 'tags' => 'sweet', 'photos' => ['https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80']],
+            ['name' => 'Caramel Frappe', 'base_price' => 42000, 'category_id' => $frappe->id, 'description' => 'Blended caramel coffee', 'tags' => 'sweet', 'photos' => ['https://images.unsplash.com/photo-1553909489-cd47e0907980?w=400&q=80']],
+            ['name' => 'Matcha Frappe', 'base_price' => 40000, 'category_id' => $frappe->id, 'description' => 'Blended matcha green tea', 'tags' => 'healthy', 'photos' => ['https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=400&q=80']],
             
             // Snacks
-            ['name' => 'French Fries', 'base_price' => 25000, 'category_id' => $snacks->id, 'description' => 'Crispy golden french fries', 'tags' => 'savory'],
-            ['name' => 'Cheese Fries', 'base_price' => 32000, 'category_id' => $snacks->id, 'description' => 'French fries with melted cheese', 'tags' => 'savory,recommended'],
-            ['name' => 'Toast Bread', 'base_price' => 20000, 'category_id' => $snacks->id, 'description' => 'Toasted bread with butter', 'tags' => 'simple'],
+            ['name' => 'French Fries', 'base_price' => 25000, 'category_id' => $snacks->id, 'description' => 'Crispy golden french fries', 'tags' => 'savory', 'photos' => ['https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&q=80']],
+            ['name' => 'Cheese Fries', 'base_price' => 32000, 'category_id' => $snacks->id, 'description' => 'French fries with melted cheese', 'tags' => 'savory,recommended', 'photos' => ['https://images.unsplash.com/photo-1585109649139-366815a0d713?w=400&q=80']],
+            ['name' => 'Toast Bread', 'base_price' => 20000, 'category_id' => $snacks->id, 'description' => 'Toasted bread with butter', 'tags' => 'simple', 'photos' => ['https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80']],
             
             // Pastry
-            ['name' => 'Butter Croissant', 'base_price' => 28000, 'category_id' => $pastry->id, 'description' => 'Flaky buttery croissant', 'tags' => 'classic,recommended'],
-            ['name' => 'Chocolate Croissant', 'base_price' => 32000, 'category_id' => $pastry->id, 'description' => 'Croissant filled with chocolate', 'tags' => 'sweet'],
-            ['name' => 'Ham & Cheese Croissant', 'base_price' => 35000, 'category_id' => $pastry->id, 'description' => 'Savory croissant with ham and cheese', 'tags' => 'savory'],
+            ['name' => 'Butter Croissant', 'base_price' => 28000, 'category_id' => $pastry->id, 'description' => 'Flaky buttery croissant', 'tags' => 'classic,recommended', 'photos' => ['https://images.unsplash.com/photo-1555507036-ab1f4038024a?w=400&q=80']],
+            ['name' => 'Chocolate Croissant', 'base_price' => 32000, 'category_id' => $pastry->id, 'description' => 'Croissant filled with chocolate', 'tags' => 'sweet', 'photos' => ['https://images.unsplash.com/photo-1530610476181-d83430b64dcd?w=400&q=80']],
+            ['name' => 'Ham & Cheese Croissant', 'base_price' => 35000, 'category_id' => $pastry->id, 'description' => 'Savory croissant with ham and cheese', 'tags' => 'savory', 'photos' => ['https://images.unsplash.com/photo-1549903072-7e6e8f06420a?w=400&q=80']],
         ];
 
         $productModels = [];

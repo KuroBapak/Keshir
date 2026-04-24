@@ -1221,7 +1221,7 @@
                     </div>
                     <div class="cat-text">
                         <div class="cat-name">KOPI</div>
-                        <div class="cat-items">{{ $products->filter(function($p) { return str_contains(strtolower($p->name), 'kopi') || str_contains(strtolower($p->name), 'latte') || str_contains(strtolower($p->name), 'americano') || str_contains(strtolower($p->name), 'espresso'); })->count() }} items</div>
+                        <div class="cat-items">{{ $products->filter(function($p) { $n = strtolower($p->name); return str_contains($n, 'kopi') || str_contains($n, 'coffee') || str_contains($n, 'latte') || str_contains($n, 'americano') || str_contains($n, 'espresso') || str_contains($n, 'cappuccino') || str_contains($n, 'mocha') || str_contains($n, 'frappe') || str_contains($n, 'vietnamese') || str_contains($n, 'brown sugar'); })->count() }} items</div>
                     </div>
                 </div>
 
@@ -1243,7 +1243,7 @@
                     </div>
                     <div class="cat-text">
                         <div class="cat-name">SNACK</div>
-                        <div class="cat-items">{{ $products->filter(function($p) { return str_contains(strtolower($p->name), 'snack') || str_contains(strtolower($p->name), 'kue') || str_contains(strtolower($p->name), 'roti'); })->count() }} items</div>
+                        <div class="cat-items">{{ $products->filter(function($p) { $n = strtolower($p->name); return str_contains($n, 'snack') || str_contains($n, 'kue') || str_contains($n, 'roti') || str_contains($n, 'fries') || str_contains($n, 'kentang') || str_contains($n, 'croissant') || str_contains($n, 'pastry') || str_contains($n, 'cake') || str_contains($n, 'tart') || str_contains($n, 'toast'); })->count() }} items</div>
                     </div>
                 </div>
             </div>
@@ -1254,7 +1254,12 @@
                 <div class="product-card" data-cat="{{ $p->category_id }}" data-name="{{ strtolower($p->name) }}" onclick='openProductModal(@json($p))'>
                     <div class="product-image">
                         @if(is_array($p->photos) && count($p->photos) > 0)
-                            <img src="{{ asset('storage/' . $p->photos[0]) }}" alt="{{ $p->name }}">
+                            @php $photo = $p->photos[0]; @endphp
+                            @if(str_starts_with($photo, 'http'))
+                                <img src="{{ $photo }}" alt="{{ $p->name }}" loading="lazy">
+                            @else
+                                <img src="{{ asset('storage/' . $photo) }}" alt="{{ $p->name }}" loading="lazy">
+                            @endif
                         @else
                             <span style="font-size:3rem; opacity:0.1">🍽️</span>
                         @endif
@@ -1532,7 +1537,10 @@
             if (!product || !Array.isArray(product.photos) || product.photos.length === 0) return null;
             const firstPhoto = String(product.photos[0] || '');
             if (!firstPhoto) return null;
-            if (firstPhoto.startsWith('http://') || firstPhoto.startsWith('https://') || firstPhoto.startsWith('/')) {
+            if (firstPhoto.startsWith('http://') || firstPhoto.startsWith('https://')) {
+                return firstPhoto;
+            }
+            if (firstPhoto.startsWith('/')) {
                 return firstPhoto;
             }
             return `${storageBaseUrl}/${firstPhoto}`;
