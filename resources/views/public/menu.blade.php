@@ -955,6 +955,64 @@
         .chat-send-btn:hover { transform: scale(1.08); }
         .chat-send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+        /* Quick Reply Buttons */
+        .chat-quick-replies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            padding: 0.5rem 1rem 0;
+        }
+        .quick-reply-btn {
+            padding: 0.45rem 0.85rem;
+            border-radius: 50px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #334155;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .quick-reply-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #eef2ff;
+        }
+
+        /* Reset / Clear Chat */
+        .chat-reset-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.92rem;
+            cursor: pointer;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+        }
+        .chat-reset-btn:hover { color: white; background: rgba(255,255,255,0.18); }
+
+        /* Chat action buttons (add to cart from chat) */
+        .chat-action-btn {
+            display: inline-block;
+            margin-top: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            border: 1px solid var(--primary);
+            background: #eef2ff;
+            color: var(--primary);
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chat-action-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
         @media (max-width: 992px) {
             body {
                 overflow: hidden;
@@ -1539,10 +1597,19 @@
                 <h4>Asisten Keshir</h4>
                 <span>AI Pelayan Virtual • Siap membantu!</span>
             </div>
+            <button class="chat-reset-btn" onclick="resetChat()" title="Reset Chat">🗑️</button>
             <button class="chat-close-btn" onclick="toggleChatPanel(false)">✕</button>
         </div>
         <div class="chat-messages" id="chatMessages">
-            <div class="chat-bubble bot">Halo! 👋 Saya asisten virtual <strong>Keshir Coffee Shop</strong>.<br><br>Mau tanya menu, rekomendasi, atau info harga? Silakan ketik di bawah! ☕</div>
+            <!-- Greeting will be injected by JS -->
+        </div>
+        <div class="chat-quick-replies" id="chatQuickReplies">
+            <button class="quick-reply-btn" onclick="sendQuickReply('📋 Lihat semua menu')">📋 Menu</button>
+            <button class="quick-reply-btn" onclick="sendQuickReply('⭐ Apa menu terlaris?')">⭐ Terlaris</button>
+            <button class="quick-reply-btn" onclick="sendQuickReply('💰 Berapa pajak pesanan?')">💰 Pajak</button>
+            <button class="quick-reply-btn" onclick="sendQuickReply('🎁 Ada promo aktif?')">🎁 Promo</button>
+            <button class="quick-reply-btn" onclick="sendQuickReply('🪑 Ada meja kosong?')">🪑 Meja</button>
+            <button class="quick-reply-btn" onclick="sendQuickReply('🕐 Jam buka kapan?')">🕐 Jam Buka</button>
         </div>
         <div class="chat-input-area">
             <input type="text" class="chat-input" id="chatInput" placeholder="Ketik pesan..." autocomplete="off">
@@ -1925,16 +1992,126 @@
         });
 
         // =============================================
-        // CHATBOT AI — Full Chat Widget
+        // CHATBOT AI — Full Chat Widget (Enhanced)
         // =============================================
         const chatPanel = document.getElementById('chatPanel');
         const chatFab = document.getElementById('chatbotFab');
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const chatSendBtn = document.getElementById('chatSendBtn');
+        const CHAT_STORAGE_KEY = 'keshir_chat_history';
+        const CHAT_CONV_KEY = 'keshir_conversation';
         let conversationHistory = [];
         let isSending = false;
 
+        // --- Sound Notification ---
+        const chatNotificationSound = (function() {
+            // Generate a short beep using Web Audio API
+            let audioCtx = null;
+            return function() {
+                try {
+                    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.3);
+                } catch(e) { /* ignore audio errors */ }
+            };
+        })();
+
+        // --- Contextual Greeting ---
+        function getContextualGreeting() {
+            const hour = new Date().getHours();
+            let timeGreeting, emoji, suggestion;
+            if (hour >= 5 && hour < 11) {
+                timeGreeting = 'Selamat pagi';
+                emoji = '🌅';
+                suggestion = 'Mau mulai hari dengan secangkir kopi hangat?';
+            } else if (hour >= 11 && hour < 15) {
+                timeGreeting = 'Selamat siang';
+                emoji = '☀️';
+                suggestion = 'Mau pesan minuman segar untuk menemani makan siang?';
+            } else if (hour >= 15 && hour < 18) {
+                timeGreeting = 'Selamat sore';
+                emoji = '🌤️';
+                suggestion = 'Waktunya coffee break! Ada yang bisa saya bantu?';
+            } else {
+                timeGreeting = 'Selamat malam';
+                emoji = '🌙';
+                suggestion = 'Mau pesan minuman hangat untuk menemani malam Anda?';
+            }
+            return `${timeGreeting}! ${emoji} Saya asisten virtual <strong>Keshir Coffee Shop</strong>.<br><br>${suggestion}<br>Silakan ketik atau pilih tombol di bawah! ☕`;
+        }
+
+        // --- LocalStorage Persistence ---
+        function saveChat() {
+            try {
+                const bubbles = chatMessages.querySelectorAll('.chat-bubble');
+                const messages = [];
+                bubbles.forEach(b => {
+                    messages.push({
+                        type: b.classList.contains('user') ? 'user' : 'bot',
+                        html: b.innerHTML
+                    });
+                });
+                localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+                localStorage.setItem(CHAT_CONV_KEY, JSON.stringify(conversationHistory));
+            } catch(e) {}
+        }
+
+        function loadChat() {
+            try {
+                const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+                const savedConv = localStorage.getItem(CHAT_CONV_KEY);
+                if (saved) {
+                    const messages = JSON.parse(saved);
+                    if (messages.length > 0) {
+                        chatMessages.innerHTML = '';
+                        messages.forEach(m => {
+                            const bubble = document.createElement('div');
+                            bubble.className = 'chat-bubble ' + m.type;
+                            bubble.innerHTML = m.html;
+                            chatMessages.appendChild(bubble);
+                        });
+                        // Re-attach action button listeners
+                        attachCartActionListeners();
+                    } else {
+                        injectGreeting();
+                    }
+                } else {
+                    injectGreeting();
+                }
+                if (savedConv) {
+                    conversationHistory = JSON.parse(savedConv);
+                }
+            } catch(e) {
+                injectGreeting();
+            }
+        }
+
+        function injectGreeting() {
+            chatMessages.innerHTML = '';
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble bot';
+            bubble.innerHTML = getContextualGreeting();
+            chatMessages.appendChild(bubble);
+        }
+
+        // --- Reset Chat ---
+        function resetChat() {
+            conversationHistory = [];
+            localStorage.removeItem(CHAT_STORAGE_KEY);
+            localStorage.removeItem(CHAT_CONV_KEY);
+            injectGreeting();
+        }
+
+        // --- Toggle Chat Panel ---
         function toggleChatPanel(show) {
             if (show) {
                 chatPanel.classList.add('open');
@@ -1968,6 +2145,7 @@
             }
             chatMessages.appendChild(bubble);
             scrollToBottom();
+            saveChat();
             return bubble;
         }
 
@@ -1985,21 +2163,136 @@
             if (el) el.remove();
         }
 
-        // Simple markdown renderer for bot responses
+        // --- Improved Markdown Renderer (with list support) ---
         function renderMarkdown(text) {
             if (!text) return '';
-            let html = text
-                // Images: ![alt](url)
-                .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
-                // Bold: **text**
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                // Italic: *text*
-                .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
-                // Line breaks
-                .replace(/\n/g, '<br>');
+
+            // Split by lines for block-level processing
+            const lines = text.split('\n');
+            let html = '';
+            let inList = false;
+            let listType = ''; // 'ul' or 'ol'
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+
+                // Numbered list: "1. item", "2. item"
+                const olMatch = line.match(/^\d+\.\s+(.+)/);
+                // Bullet list: "- item", "* item", "• item"
+                const ulMatch = line.match(/^[-*•]\s+(.+)/);
+
+                if (olMatch) {
+                    if (!inList || listType !== 'ol') {
+                        if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
+                        html += '<ol style="margin:0.3rem 0 0.3rem 1.2rem;padding:0;">';
+                        inList = true;
+                        listType = 'ol';
+                    }
+                    html += '<li>' + inlineMarkdown(olMatch[1]) + '</li>';
+                } else if (ulMatch) {
+                    if (!inList || listType !== 'ul') {
+                        if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
+                        html += '<ul style="margin:0.3rem 0 0.3rem 1.2rem;padding:0;">';
+                        inList = true;
+                        listType = 'ul';
+                    }
+                    html += '<li>' + inlineMarkdown(ulMatch[1]) + '</li>';
+                } else {
+                    if (inList) {
+                        html += listType === 'ul' ? '</ul>' : '</ol>';
+                        inList = false;
+                        listType = '';
+                    }
+                    html += (line.trim() === '' ? '<br>' : inlineMarkdown(line) + '<br>');
+                }
+            }
+            if (inList) {
+                html += listType === 'ul' ? '</ul>' : '</ol>';
+            }
+
+            // Clean up trailing <br>
+            html = html.replace(/(<br>)+$/, '');
             return html;
         }
 
+        function inlineMarkdown(text) {
+            return text
+                .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy" style="max-width:100%;border-radius:8px;margin:0.3rem 0;">')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+        }
+
+        // --- Quick Reply ---
+        function sendQuickReply(msg) {
+            chatInput.value = msg;
+            sendChatMessage();
+        }
+
+        // --- Add to Cart from Chat ---
+        function attachCartActionListeners() {
+            document.querySelectorAll('.chat-action-btn[data-product-name]').forEach(btn => {
+                btn.onclick = function() {
+                    const name = this.dataset.productName;
+                    // Find matching product card and click it
+                    const cards = document.querySelectorAll('.product-card');
+                    for (const card of cards) {
+                        if (card.dataset.name && card.dataset.name.includes(name.toLowerCase())) {
+                            card.click();
+                            toggleChatPanel(false);
+                            return;
+                        }
+                    }
+                    alert('Menu "' + name + '" tidak ditemukan di halaman. Silakan cari di menu.');
+                };
+            });
+        }
+
+        function injectCartButtons(botBubble, botText) {
+            // Try to detect menu names mentioned in the response
+            // Match patterns like: "Kopi Kapal Api", product names from the page
+            const productCards = document.querySelectorAll('.product-card');
+            const productNames = [];
+            productCards.forEach(card => {
+                const name = card.dataset.name;
+                if (name) productNames.push(name);
+            });
+
+            const lowerText = botText.toLowerCase();
+            const matched = [];
+            productNames.forEach(name => {
+                if (lowerText.includes(name) && !matched.includes(name)) {
+                    matched.push(name);
+                }
+            });
+
+            if (matched.length > 0 && matched.length <= 5) {
+                const container = document.createElement('div');
+                container.style.marginTop = '0.5rem';
+                matched.forEach(name => {
+                    // Capitalize for display
+                    const displayName = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    const btn = document.createElement('button');
+                    btn.className = 'chat-action-btn';
+                    btn.dataset.productName = name;
+                    btn.textContent = '🛒 Pesan ' + displayName;
+                    btn.onclick = function() {
+                        const cards = document.querySelectorAll('.product-card');
+                        for (const card of cards) {
+                            if (card.dataset.name && card.dataset.name.includes(name)) {
+                                card.click();
+                                toggleChatPanel(false);
+                                return;
+                            }
+                        }
+                    };
+                    container.appendChild(btn);
+                    container.appendChild(document.createTextNode(' '));
+                });
+                botBubble.appendChild(container);
+            }
+        }
+
+        // --- Main Send Function ---
         async function sendChatMessage() {
             const msg = chatInput.value.trim();
             if (!msg || isSending) return;
@@ -2008,13 +2301,9 @@
             chatInput.value = '';
             chatSendBtn.disabled = true;
 
-            // Add user bubble
             addBubble(msg, 'user');
-
-            // Save to history
             conversationHistory.push({ role: 'user', content: msg });
 
-            // Show typing
             showTyping();
 
             try {
@@ -2038,11 +2327,20 @@
                 const result = await response.json();
 
                 if (result.success && result.data && result.data.message) {
-                    addBubble(result.data.message, 'bot');
-                    conversationHistory.push({ role: 'assistant', content: result.data.message });
+                    const botText = result.data.message;
+                    const botBubble = addBubble(botText, 'bot');
+                    conversationHistory.push({ role: 'assistant', content: botText });
+
+                    // Try to add "add to cart" buttons
+                    injectCartButtons(botBubble, botText);
+
+                    // Sound notification
+                    chatNotificationSound();
                 } else {
                     addBubble(result.data?.message || 'Maaf, terjadi kesalahan. Coba lagi ya! 🙏', 'bot');
                 }
+
+                saveChat();
             } catch (err) {
                 hideTyping();
                 console.error('Chatbot error:', err);
@@ -2053,6 +2351,9 @@
                 chatInput.focus();
             }
         }
+
+        // --- Initialize ---
+        loadChat();
     </script>
 </body>
 </html>

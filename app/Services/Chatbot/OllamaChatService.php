@@ -2,8 +2,10 @@
 
 namespace App\Services\Chatbot;
 
-use App\Models\Product;
+use App\Models\Discount;
 use App\Models\Ingredient;
+use App\Models\Product;
+use App\Models\Table;
 use App\Models\TransactionDetail;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -28,7 +30,16 @@ class OllamaChatService
             $messages = $this->buildMessages($userMessage, $conversationHistory, $role);
             $tools = $this->getToolDeclarations($role);
 
+            // Try with tools first; if model doesn't support tools, fallback to no-tools
             $response = $this->callOllama($messages, $tools);
+
+            // Fallback: model doesn't support tool calling (400 error)
+            if (!$response['success'] && ($response['status'] ?? 0) === 400) {
+                Log::info('Ollama model does not support tools, falling back to no-tools mode.');
+                // Re-build messages with enriched prompt (inject tool data directly)
+                $messages = $this->buildMessages($userMessage, $conversationHistory, $role, true);
+                $response = $this->callOllama($messages, []);
+            }
 
             if (!$response['success']) {
                 return $response;
@@ -72,6 +83,38 @@ class OllamaChatService
 
             // No tool call — direct text response
             $textResponse = $assistantMessage['content'] ?? 'Maaf, saya tidak bisa memproses permintaan Anda saat ini.';
+
+            // Perbaiki halusinasi Llama yang mengeluarkan JSON mentah di konten teks
+            $trimmedResponse = trim($textResponse);
+            if (is_string($trimmedResponse) && str_starts_with($trimmedResponse, '{') && str_ends_with($trimmedResponse, '}')) {
+                $decoded = json_decode($trimmedResponse, true);
+                if (json_last_error() === JSON_ERROR_NONE && isset($decoded['name'])) {
+                    $functionName = $decoded['name'];
+                    $functionArgs = $decoded['parameters'] ?? [];
+                    if (is_string($functionArgs)) {
+                        $functionArgs = json_decode($functionArgs, true) ?? [];
+                    }
+
+                    $functionResult = $this->executeFunctionCall($functionName, $functionArgs);
+
+                    $messages[] = [
+                        'role' => 'tool',
+                        'content' => json_encode($functionResult, JSON_UNESCAPED_UNICODE),
+                    ];
+
+                    $finalResponse = $this->callOllama($messages, []);
+
+                    if ($finalResponse['success']) {
+                        $finalText = $finalResponse['data']['message']['content'] ?? '';
+                        return [
+                            'success' => true,
+                            'message' => $finalText,
+                            'function_called' => $functionName . ' (hallucinated)',
+                        ];
+                    }
+                }
+            }
+
             return ['success' => true, 'message' => $textResponse];
 
         } catch (\Exception $e) {
@@ -85,14 +128,14 @@ class OllamaChatService
         }
     }
 
-    private function buildMessages(string $userMessage, array $conversationHistory, string $role): array
+    private function buildMessages(string $userMessage, array $conversationHistory, string $role, bool $enriched = false): array
     {
         $messages = [];
 
         // System prompt as the first message
         $messages[] = [
             'role' => 'system',
-            'content' => $this->getSystemPrompt($role),
+            'content' => $this->getSystemPrompt($role, $enriched),
         ];
 
         // Append conversation history
@@ -134,6 +177,7 @@ class OllamaChatService
 
             return [
                 'success' => false,
+                'status' => $response->status(),
                 'message' => 'Maaf, terjadi gangguan pada layanan AI lokal. Pastikan Ollama sedang berjalan. 🙏',
                 'error' => $errorBody,
             ];
@@ -146,28 +190,106 @@ class OllamaChatService
     // SYSTEM PROMPT & TOOL DECLARATIONS
     // =========================================================================
 
-    private function getSystemPrompt(string $role): string
+    private function getSystemPrompt(string $role, bool $enriched = false): string
     {
         $persona = $role === 'cashier'
-            ? "Kamu adalah asisten operasional kasir/dapur untuk **Keshir Coffee Shop**. Kamu bertugas membantu staf internal. Kamu memiliki akses ke stok dapur dan data resep."
-            : "Kamu adalah asisten virtual / pelayan untuk **Keshir Coffee Shop**, sebuah kafe modern yang menyajikan berbagai minuman dan makanan ringan.";
+            ? "Kamu adalah AI asisten operasional kasir/dapur untuk **Keshir Coffee Shop**. Kamu bertugas membantu staf internal. Kamu memiliki akses ke stok dapur dan data resep."
+            : "Kamu adalah AI asisten virtual pelayan untuk **Keshir Coffee Shop**, sebuah kafe modern yang menyajikan berbagai minuman dan makanan ringan.";
 
         // Inject real menu data from database so AI doesn't hallucinate
         $menuData = $this->getMenuDataForPrompt();
+        $settingsData = $this->getSettingsDataForPrompt();
+
+        // When enriched mode (model doesn't support tool calling), inject extra data
+        $extraData = '';
+        if ($enriched) {
+            $discountResult = $this->getActiveDiscounts();
+            $tableResult = $this->getAvailableTables();
+            $bestSellerResult = $this->getBestSellers(5);
+
+            $extraData .= "\nDATA PROMO/DISKON AKTIF:\n";
+            if (!empty($discountResult['data'])) {
+                foreach ($discountResult['data'] as $d) {
+                    $extraData .= "- {$d['name']}: {$d['type']} {$d['value']}\n";
+                }
+            } else {
+                $extraData .= "- Tidak ada promo aktif saat ini.\n";
+            }
+
+            $extraData .= "\nDATA KETERSEDIAAN MEJA:\n";
+            $extraData .= $tableResult['message'] . "\n";
+            if (!empty($tableResult['available_tables'])) {
+                foreach ($tableResult['available_tables'] as $t) {
+                    $extraData .= "- Meja {$t['table_number']} (kapasitas: {$t['capacity']})\n";
+                }
+            }
+
+            $extraData .= "\nDATA MENU TERLARIS:\n";
+            if (!empty($bestSellerResult['data'])) {
+                foreach ($bestSellerResult['data'] as $bs) {
+                    $extraData .= "- #{$bs['rank']} {$bs['name']} ({$bs['category']}) - {$bs['price']} (terjual {$bs['total_sold']}x)\n";
+                }
+            } else {
+                $extraData .= "- Belum ada data penjualan.\n";
+            }
+        }
 
         return <<<PROMPT
 {$persona}
 
-Berikut adalah SEMUA menu yang tersedia di Keshir Coffee Shop saat ini:
+TENTANG DIRIMU:
+- Kamu adalah chatbot AI yang terhubung langsung ke DATABASE Keshir Coffee Shop.
+- Semua data menu, harga, varian, addon, resep/bahan, pajak, dan layanan yang kamu ketahui berasal dari DATABASE SISTEM, bukan dari pengetahuan umummu.
+- Jika ditanya "dari mana kamu tahu?", jawab: "Saya membaca langsung dari database sistem Keshir Coffee Shop."
+- Tujuanmu: membantu pelanggan melihat menu, mengetahui harga, varian, bahan/komposisi, pajak, rekomendasi, promo, ketersediaan meja, dan informasi lain seputar Keshir Coffee Shop.
+
+Berikut adalah SEMUA menu yang tersedia di Keshir Coffee Shop saat ini (dari database):
 {$menuData}
 
-ATURAN:
-- Jika pelanggan bertanya daftar menu atau "ada menu apa", jawab dengan menampilkan SEMUA menu di atas beserta harga dan varian.
-- DILARANG mengarang menu atau harga yang tidak ada di daftar di atas.
-- Gunakan bahasa Indonesia yang ramah dan tambahkan emoji ☕🍰
-- Format harga: Rp 10.000
-- Jika pelanggan bertanya di luar konteks café, tolak dengan sopan.
+{$settingsData}
+{$extraData}
+INFO OPERASIONAL:
+- Jam Buka: Senin - Jumat: 08.00 - 22.00 WIB
+- Jam Buka: Sabtu - Minggu: 09.00 - 23.00 WIB
+- Estimasi waktu penyajian: 5-10 menit untuk minuman, 10-15 menit untuk makanan.
+- Untuk pesanan banyak (>5 item), estimasi bisa lebih lama sekitar 15-25 menit.
+
+ATURAN WAJIB:
+1. Jawab menggunakan BAHASA INDONESIA NATURAL yang ramah dan sopan, tambahkan emoji ☕🍰.
+2. JANGAN PERNAH memberikan respons berupa format JSON, kode fungsi, atau data mentah. Selalu jawab dengan kalimat manusia biasa.
+3. Jika pelanggan bertanya daftar menu / "ada menu apa saja", langsung tampilkan SEMUA menu dari daftar di atas.
+4. DILARANG KERAS mengarang atau menambah data yang TIDAK ADA di database:
+   - JANGAN mengarang bahan/ingredients jika data resep tidak tersedia di database.
+   - JANGAN mengarang harga, varian, atau addon yang tidak ada.
+   - Jika data tidak tersedia, jawab jujur: "Maaf, data tersebut belum tersedia di sistem kami."
+5. Format harga: Rp 10.000.
+6. Pertanyaan tentang pajak, biaya layanan, diskon, dan pembayaran adalah KONTEKS CAFE - jawab dengan data dari database.
+7. Jika pelanggan bertanya benar-benar di luar konteks cafe (misal: coding, politik, sejarah umum), tolak dengan sopan.
 PROMPT;
+    }
+
+    private function getSettingsDataForPrompt(): string
+    {
+        $taxEnabled = \App\Models\Setting::getValue('tax_enabled', '0') === '1';
+        $taxRate = $taxEnabled ? \App\Models\Setting::getValue('tax_rate', '11') : 0;
+        
+        $serviceEnabled = \App\Models\Setting::getValue('service_charge_enabled', '0') === '1';
+        $serviceRate = $serviceEnabled ? \App\Models\Setting::getValue('service_charge_rate', '5') : 0;
+
+        $lines = ["INFO TAMBAHAN (Pajak & Layanan):"];
+        if ($taxEnabled) {
+            $lines[] = "- Pajak (Tax): {$taxRate}% dari total pesanan.";
+        } else {
+            $lines[] = "- Tidak ada pajak (Tax 0%).";
+        }
+
+        if ($serviceEnabled) {
+            $lines[] = "- Biaya Layanan (Service Charge): {$serviceRate}% dari total pesanan.";
+        } else {
+            $lines[] = "- Tidak ada Biaya Layanan.";
+        }
+
+        return implode("\n", $lines);
     }
 
     /**
@@ -284,6 +406,28 @@ PROMPT;
                     ],
                 ],
             ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'get_active_discounts',
+                    'description' => 'Mengambil daftar promo/diskon yang sedang aktif. Gunakan ketika pelanggan bertanya tentang promo, diskon, potongan harga, atau penawaran spesial.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'get_available_tables',
+                    'description' => 'Mengecek meja yang tersedia untuk dine-in. Gunakan ketika pelanggan bertanya tentang ketersediaan meja, tempat duduk, atau mau makan di tempat.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [],
+                    ],
+                ],
+            ],
         ];
 
         // Filter out stock lookup for customers
@@ -301,6 +445,9 @@ PROMPT;
             'get_weather_recommendation' => $this->getWeatherRecommendation($args['condition'] ?? 'normal'),
             'get_menu_details' => $this->getMenuDetails($args['item_name'] ?? ''),
             'check_stock_status' => $this->checkStockStatus($args['ingredient_name'] ?? ''),
+            'get_active_discounts' => $this->getActiveDiscounts(),
+            'get_available_tables' => $this->getAvailableTables(),
+            'get_tax', 'get_info' => ['message' => $this->getSettingsDataForPrompt()],
             default => ['error' => 'Unknown function: ' . $functionName],
         };
     }
@@ -430,6 +577,9 @@ PROMPT;
                     'quantity' => $d->quantity,
                     'unit' => $d->ingredient->unit,
                 ])->toArray();
+            } else {
+                $result['ingredients'] = [];
+                $result['ingredients_note'] = 'Data resep/bahan untuk menu ini BELUM dimasukkan ke dalam database. JANGAN mengarang bahan.';
             }
 
             if ($product->variants->isNotEmpty()) {
@@ -494,6 +644,55 @@ PROMPT;
                 ? "Status stok {$data[0]['name']}:"
                 : 'Ditemukan ' . count($data) . ' bahan yang cocok:',
             'data' => $data,
+        ];
+    }
+
+    private function getActiveDiscounts(): array
+    {
+        $discounts = Discount::where('is_active', true)->get();
+
+        if ($discounts->isEmpty()) {
+            return ['message' => 'Saat ini tidak ada promo/diskon yang aktif.', 'data' => []];
+        }
+
+        $data = $discounts->map(fn($d) => [
+            'name' => $d->name,
+            'type' => $d->type === 'percentage' ? 'Persentase' : 'Potongan Harga',
+            'value' => $d->type === 'percentage'
+                ? $d->value . '%'
+                : 'Rp ' . number_format($d->value, 0, ',', '.'),
+        ])->toArray();
+
+        return [
+            'message' => 'Berikut promo/diskon yang sedang aktif:',
+            'data' => $data,
+            'total' => count($data),
+        ];
+    }
+
+    private function getAvailableTables(): array
+    {
+        $tables = Table::all();
+
+        if ($tables->isEmpty()) {
+            return ['message' => 'Data meja belum dikonfigurasi.', 'data' => []];
+        }
+
+        $available = $tables->where('status', 'available');
+        $total = $tables->count();
+
+        $data = $available->map(fn($t) => [
+            'table_number' => $t->table_number,
+            'capacity' => $t->capacity . ' orang',
+        ])->values()->toArray();
+
+        return [
+            'message' => count($data) > 0
+                ? 'Ada ' . count($data) . ' meja tersedia dari total ' . $total . ' meja:'
+                : 'Maaf, semua meja sedang terisi saat ini. Total meja: ' . $total,
+            'available_tables' => $data,
+            'total_tables' => $total,
+            'available_count' => count($data),
         ];
     }
 }
