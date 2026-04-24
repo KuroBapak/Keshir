@@ -78,5 +78,8 @@ class DatabaseSeeder extends Seeder
                 ['capacity' => rand(2, 6), 'status' => 'available']
             );
         }
+
+        // Generate Dummy Demo Data (Menus, Ingredients, Transactions)
+        $this->call(DemoDataSeeder::class);
     }
 }

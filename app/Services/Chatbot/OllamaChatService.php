@@ -17,8 +17,8 @@ class OllamaChatService
 
     public function __construct()
     {
-        $this->baseUrl = rtrim(env('OLLAMA_URL', 'http://127.0.0.1:11434'), '/');
-        $this->model = env('OLLAMA_MODEL', 'llama3.1');
+        $this->baseUrl = rtrim(config('services.ollama.url', 'http://127.0.0.1:11434'), '/');
+        $this->model = config('services.ollama.model', 'llama3.1');
     }
 
     /**
@@ -35,7 +35,7 @@ class OllamaChatService
 
             // Fallback: model doesn't support tool calling (400 error)
             if (!$response['success'] && ($response['status'] ?? 0) === 400) {
-                Log::info('Ollama model does not support tools, falling back to no-tools mode.');
+                Log::debug('Ollama model does not support tools, falling back to no-tools mode.');
                 // Re-build messages with enriched prompt (inject tool data directly)
                 $messages = $this->buildMessages($userMessage, $conversationHistory, $role, true);
                 $response = $this->callOllama($messages, []);
@@ -173,7 +173,12 @@ class OllamaChatService
 
         if (!$response->successful()) {
             $errorBody = $response->body();
-            Log::error('Ollama API error', ['status' => $response->status(), 'body' => $errorBody]);
+            
+            // Do not log ERROR if it's a 400 Bad Request caused by tool compatibility,
+            // because the main chat() method will handle the fallback gracefully.
+            if (!($response->status() === 400 && !empty($tools))) {
+                Log::error('Ollama API error', ['status' => $response->status(), 'body' => $errorBody]);
+            }
 
             return [
                 'success' => false,

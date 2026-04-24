@@ -79,8 +79,8 @@ class ChatbotController extends Controller
      */
     public function health(): JsonResponse
     {
-        $ollamaUrl = env('OLLAMA_URL', 'http://127.0.0.1:11434');
-        $ollamaModel = env('OLLAMA_MODEL', 'llama3.1');
+        $ollamaUrl = config('services.ollama.url', 'http://127.0.0.1:11434');
+        $ollamaModel = config('services.ollama.model', 'llama3.1');
 
         // Quick ping to Ollama
         $ollamaOnline = false;
