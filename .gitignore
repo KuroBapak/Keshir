@@ -25,3 +25,7 @@ Homestead.yaml
 Thumbs.db
 nitip.txt
 
+Chatbot/backend/vendor/
+Chatbot/backend/.env
+Chatbot/frontend/node_modules/
+Chatbot/backend/database/database.sqlite
