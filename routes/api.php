@@ -9,6 +9,9 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::post('/attendance/register-card', [\App\Http\Controllers\Api\AttendanceDeviceController::class, 'registerCard']);
+Route::post('/attendance/tap', [\App\Http\Controllers\Api\AttendanceDeviceController::class, 'tap']);
+
 Route::post('/midtrans/webhook', [MidtransWebhookController::class, 'handle']);
 
 // Chatbot AI Routes

@@ -529,6 +529,7 @@
 <div class="att-tabs">
     <button class="att-tab active" onclick="switchTab('history', this)">📝 Histori Absensi</button>
     <button class="att-tab" onclick="switchTab('recap', this)">📊 Rekap per Karyawan</button>
+    <button class="att-tab" onclick="switchTab('rfid', this)">📡 Kelola Kartu RFID</button>
 </div>
 
 {{-- Tab 1: History --}}
@@ -748,9 +749,88 @@
         </div>
     </div>
 </div>
+
+{{-- Tab 3: RFID Management --}}
+<div class="tab-panel" id="tab-rfid">
+    <div class="att-table-card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
+        <div class="att-table-header">
+            <h3><span>📡</span> Manajemen Kartu Akses Karyawan</h3>
+            <span class="badge badge-success" id="mqtt-status">🔌 Menghubungkan MQTT...</span>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="att-table">
+                <thead>
+                    <tr>
+                        <th>Karyawan</th>
+                        <th>Status Kartu</th>
+                        <th>UID RFID</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @forelse($staffUsers as $user)
+                    <tr>
+                        <td>
+                            <div class="staff-cell">
+                                <div class="avatar">{{ strtoupper(substr($user->name, 0, 1)) }}</div>
+                                <div>
+                                    <div class="name">{{ $user->name }}</div>
+                                    <div class="role">{{ $user->role->name }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            @if($user->rfid_uid)
+                                <span class="badge badge-success">✅ Terdaftar</span>
+                            @else
+                                <span class="badge badge-danger">❌ Belum Ada Kartu</span>
+                            @endif
+                        </td>
+                        <td>
+                            <code style="background: var(--bg-dark); padding: 0.25rem 0.5rem; border-radius: 4px;">
+                                {{ $user->rfid_uid ? '***' . substr($user->rfid_uid, -4) : 'N/A' }}
+                            </code>
+                        </td>
+                        <td>
+                            <div class="action-group">
+                                <button type="button" class="btn-action btn-reset" onclick="startRegistration({{ $user->id }}, '{{ $user->name }}')">
+                                    📡 Register Kartu
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4">
+                            <div class="empty-state-att">
+                                <div class="icon">👥</div>
+                                <p>Tidak ada data karyawan.</p>
+                            </div>
+                        </td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{{-- Registration Modal Overlay --}}
+<div id="rfidModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div style="background: var(--card); padding: 2rem; border-radius: var(--radius-lg); text-align: center; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <div style="font-size: 3rem; margin-bottom: 1rem;" id="modalIcon">📡</div>
+        <h3 style="margin-bottom: 0.5rem;" id="modalTitle">Mode Registrasi</h3>
+        <p style="color: var(--muted); margin-bottom: 1.5rem;" id="modalText">
+            Silakan tap kartu RFID baru ke perangkat scanner (ESP32) untuk mendaftarkan <strong><span id="regUserName"></span></strong>.
+        </p>
+        <button onclick="cancelRegistration()" class="btn btn-outline" style="width: 100%;">Batal</button>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
     function switchTab(tabName, btnElement) {
         // Deactivate all tabs
@@ -760,6 +840,129 @@
         // Activate selected
         btnElement.classList.add('active');
         document.getElementById('tab-' + tabName).classList.add('active');
+    }
+
+    // MQTT Configuration
+    const mqttHost = '{{ config("services.mqtt.host") }}';
+    const mqttWsPort = '{{ config("services.mqtt.ws_port") }}';
+    const mqttUser = '{{ config("services.mqtt.username") }}';
+    const mqttPass = '{{ config("services.mqtt.password") }}';
+    
+    // Connect to MQTT via WebSocket
+    const brokerUrl = mqttWsPort 
+        ? `wss://${mqttHost}:${mqttWsPort}/mqtt`
+        : `wss://${mqttHost}/mqtt`;
+    const client = mqtt.connect(brokerUrl, {
+        username: mqttUser,
+        password: mqttPass,
+        clientId: 'keshir_dashboard_' + Math.random().toString(16).substr(2, 8)
+    });
+
+    const statusBadge = document.getElementById('mqtt-status');
+    let currentRegUserId = null;
+
+    client.on('connect', function () {
+        statusBadge.className = 'badge badge-success';
+        statusBadge.innerHTML = '🟢 MQTT Terhubung';
+        // Subscribe to BOTH event (registration) and tap (daily attendance)
+        client.subscribe('keshir/attendance/+/up/event');
+        client.subscribe('keshir/attendance/+/up/tap');
+    });
+
+    client.on('offline', function () {
+        statusBadge.className = 'badge badge-danger';
+        statusBadge.innerHTML = '🔴 MQTT Offline';
+    });
+
+    client.on('message', function (topic, message) {
+        try {
+            const data = JSON.parse(message.toString());
+            const targetDevice = topic.split('/')[2];
+            const topicType = topic.split('/').pop(); // 'event' or 'tap'
+
+            // --- 1. MODE REGISTRASI KARTU ---
+            if (topicType === 'event' && data.event === 'card_scanned' && data.uid) {
+                if (!currentRegUserId) return; // Ignore if not in registration mode
+                
+                fetch('{{ url("/api/attendance/register-card") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ user_id: currentRegUserId, rfid_uid: data.uid })
+                })
+                .then(res => res.json())
+                .then(response => {
+                    if (response.success) {
+                        client.publish(`keshir/attendance/${targetDevice}/down/cmd`, JSON.stringify({
+                            action: 'register_success', name: response.data.name
+                        }), { qos: 0 }, function() {
+                            alert(response.message);
+                            location.reload();
+                        });
+                    } else {
+                        alert('Gagal: ' + (response.message || 'UID mungkin sudah dipakai'));
+                        cancelRegistration();
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Terjadi kesalahan jaringan.');
+                    cancelRegistration();
+                });
+            }
+
+            // --- 2. MODE ABSENSI HARIAN (TAP) ---
+            else if (topicType === 'tap' && data.uid) {
+                // Ignore daily taps if we are currently trying to register a card
+                if (currentRegUserId) return;
+
+                fetch('{{ url("/api/attendance/tap") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ uid: data.uid, device_id: targetDevice })
+                })
+                .then(res => res.json())
+                .then(response => {
+                    // response.status could be 'check_in', 'check_out', 'already_done', 'cooldown', 'unknown_card'
+                    client.publish(`keshir/attendance/${targetDevice}/down/response`, JSON.stringify(response), { qos: 0 });
+                    
+                    // If it's a valid check-in/out, we might want to silently reload the page after a brief delay to update the UI
+                    if (response.status === 'check_in' || response.status === 'check_out') {
+                        setTimeout(() => location.reload(), 2000);
+                    }
+                })
+                .catch(err => console.error('Gagal memproses tap absensi:', err));
+            }
+
+        } catch (e) {
+            console.error('MQTT Parse Error', e);
+        }
+    });
+
+    function startRegistration(userId, userName) {
+        if (!client.connected) {
+            alert('Koneksi MQTT terputus. Pastikan internet stabil.');
+            return;
+        }
+
+        currentRegUserId = userId;
+        document.getElementById('regUserName').innerText = userName;
+        document.getElementById('rfidModal').style.display = 'flex';
+
+        // Broadcast registration mode command to all attendance devices
+        client.publish('keshir/attendance/broadcast/down/cmd', JSON.stringify({
+            action: 'register_mode',
+            user_id: userId
+        }));
+    }
+
+    function cancelRegistration() {
+        if (currentRegUserId && client.connected) {
+            client.publish('keshir/attendance/broadcast/down/cmd', JSON.stringify({
+                action: 'cancel_register'
+            }));
+        }
+        currentRegUserId = null;
+        document.getElementById('rfidModal').style.display = 'none';
     }
 </script>
 @endpush

@@ -40,4 +40,12 @@ return [
         'model' => env('OLLAMA_MODEL', 'llama3.1'),
     ],
 
+    'mqtt' => [
+        'host' => env('MQTT_HOST', 'mqtt.kurobapak.site'),
+        'port' => env('MQTT_PORT', 1883),
+        'ws_port' => env('MQTT_WS_PORT', 443),
+        'username' => env('MQTT_AUTH_USERNAME', 'ESP32'),
+        'password' => env('MQTT_AUTH_PASSWORD', ''),
+    ],
+
 ];
