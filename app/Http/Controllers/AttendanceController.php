@@ -33,7 +33,7 @@ class AttendanceController extends Controller
     public function management(Request $request)
     {
         // Staff users (non-owner)
-        $staffUsers = User::with('role')
+        $staffUsers = User::with(['role', 'defaultShift'])
             ->whereHas('role', fn($q) => $q->where('name', '!=', 'owner'))
             ->get();
 
@@ -43,7 +43,7 @@ class AttendanceController extends Controller
         $filterUser = $request->get('user_id', '');
 
         // Query attendance logs
-        $query = AttendanceLog::with('user.role')
+        $query = AttendanceLog::with(['user.role', 'shift'])
             ->whereBetween('date', [$startDate, $endDate])
             ->orderBy('date', 'desc')
             ->orderBy('check_in', 'desc');
@@ -65,10 +65,8 @@ class AttendanceController extends Controller
         $todayAbsent = $staffUsers->count() - $todayLogs->count();
 
         // === PERIOD STATS ===
-        $totalWorkDays = Carbon::parse($startDate)->diffInDaysFiltered(
-            fn(Carbon $date) => !$date->isWeekend(),
-            Carbon::parse($endDate)->addDay()
-        );
+        // Untuk bisnis F&B / POS, biasanya operasional setiap hari (termasuk weekend).
+        $totalWorkDays = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
 
         // Expected attendance = work days * staff count
         $staffCount = $filterUser ? 1 : $staffUsers->count();
@@ -127,9 +125,14 @@ class AttendanceController extends Controller
             'staff_count' => $staffCount,
         ];
 
+        $shifts = \App\Models\Shift::all();
+
+        // Group logs by date
+        $logsByDate = $logs->groupBy('date');
+
         return view('dashboard.attendance.index', compact(
-            'logs', 'staffUsers', 'stats', 'staffRecap',
-            'startDate', 'endDate', 'filterUser', 'todayLogs'
+            'logs', 'logsByDate', 'staffUsers', 'stats', 'staffRecap',
+            'startDate', 'endDate', 'filterUser', 'todayLogs', 'shifts'
         ));
     }
 
@@ -205,10 +208,6 @@ class AttendanceController extends Controller
         return back()->with('success', "Check-out untuk {$staffName} berhasil direset. Staff bisa melanjutkan kerja.");
     }
 
-    /**
-     * Delete an attendance record.
-     * Only owner can delete.
-     */
     public function destroy(AttendanceLog $attendanceLog)
     {
         $currentUser = auth()->user();

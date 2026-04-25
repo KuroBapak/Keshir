@@ -19,6 +19,8 @@ class User extends Authenticatable
         'password',
         'role_id',
         'rfid_uid',
+        'default_shift_id',
+        'allow_double_shift',
     ];
 
     protected $hidden = [
@@ -30,6 +32,7 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'allow_double_shift' => 'boolean',
         ];
     }
 
@@ -41,6 +44,11 @@ class User extends Authenticatable
     public function attendanceLogs(): HasMany
     {
         return $this->hasMany(AttendanceLog::class);
+    }
+
+    public function defaultShift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class, 'default_shift_id');
     }
 
     public function cashDrawers(): HasMany

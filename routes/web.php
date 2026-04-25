@@ -11,6 +11,7 @@ use App\Http\Controllers\ProductVariantController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TableController;
+use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\CashDrawerController;
@@ -91,7 +92,9 @@ Route::middleware(['auth', 'attendance'])->group(function () {
         Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
         Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
 
-        // Attendance Management
+        // Attendance Management & Shifts
+        Route::resource('shifts', ShiftController::class)->except(['show', 'create', 'edit']);
+        Route::patch('shifts/assign-staff/{user}', [ShiftController::class, 'assignStaff'])->name('shifts.assign-staff');
         Route::get('attendance', [AttendanceController::class, 'management'])->name('attendance.management');
         Route::patch('attendance/{attendanceLog}/reset-checkout', [AttendanceController::class, 'resetCheckout'])->name('attendance.reset-checkout');
     });

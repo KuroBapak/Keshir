@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceLog extends Model
 {
-    protected $fillable = ['user_id', 'date', 'check_in', 'check_out', 'source'];
+    protected $fillable = [
+        'user_id', 'date', 'check_in', 'check_out', 'source', 
+        'shift_id', 'status_in', 'status_out'
+    ];
 
     protected function casts(): array
     {
@@ -20,5 +23,10 @@ class AttendanceLog extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 }

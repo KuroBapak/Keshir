@@ -828,6 +828,9 @@
             <a href="{{ route('settings.index') }}" class="{{ request()->routeIs('settings.*') ? 'active' : '' }}">
                 <span class="icon">⚙️</span> <span data-i18n="settings">Pengaturan</span>
             </a>
+            <a href="{{ route('shifts.index') }}" class="{{ request()->routeIs('shifts.*') ? 'active' : '' }}">
+                <span class="icon">⏱️</span> <span data-i18n="shifts">Shift Absensi</span>
+            </a>
             <a href="{{ route('attendance.management') }}" class="{{ request()->routeIs('attendance.management') ? 'active' : '' }}">
                 <span class="icon">📋</span> <span data-i18n="attendance">Absensi</span>
             </a>
@@ -924,6 +927,7 @@
                 cash_drawer: 'Kas Laci',
                 refunds: 'Refund',
                 settings: 'Pengaturan',
+                shifts: 'Shift Absensi',
                 attendance: 'Absensi',
                 reports: 'Laporan',
                 daily_report: 'Laporan Harian',
@@ -952,6 +956,7 @@
                 cash_drawer: 'Cash Drawer',
                 refunds: 'Refunds',
                 settings: 'Settings',
+                shifts: 'Shifts',
                 attendance: 'Attendance',
                 reports: 'Reports',
                 daily_report: 'Daily Report',

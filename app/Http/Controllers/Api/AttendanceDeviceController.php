@@ -52,43 +52,22 @@ class AttendanceDeviceController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Invalid payload'], 400);
         }
 
-        $uid = $request->uid;
-        $user = User::where('rfid_uid', $uid)->first();
+        $user = User::with('defaultShift')->where('rfid_uid', $request->uid)->first();
 
         if (!$user) {
             return response()->json(['status' => 'unknown_card']);
         }
 
-        $today = now()->startOfDay();
-        $log = \App\Models\AttendanceLog::where('user_id', $user->id)
-            ->where('created_at', '>=', $today)
+        // Get the latest log for today
+        $latestLog = \App\Models\AttendanceLog::where('user_id', $user->id)
+            ->where('date', now()->toDateString())
+            ->orderBy('id', 'desc')
             ->first();
 
-        if (!$log) {
-            // Check-in
-            \App\Models\AttendanceLog::create([
-                'user_id' => $user->id,
-                'check_in' => now(),
-                'status' => 'present',
-                'source' => 'iot',
-            ]);
-
-            return response()->json([
-                'status' => 'check_in',
-                'name' => $user->name,
-                'time' => now()->format('H:i'),
-            ]);
-        } else {
-            // Jika sudah check-out
-            if ($log->check_out) {
-                return response()->json([
-                    'status' => 'already_done',
-                    'name' => $user->name,
-                ]);
-            }
-
-            // Cooldown 5 menit
-            $checkInTime = \Carbon\Carbon::parse($log->check_in);
+        // If there is an open log, do checkout
+        if ($latestLog && is_null($latestLog->check_out)) {
+            // Cooldown 5 minutes
+            $checkInTime = \Carbon\Carbon::parse($latestLog->check_in);
             $diffMins = $checkInTime->diffInMinutes(now());
 
             if ($diffMins < 5) {
@@ -100,7 +79,7 @@ class AttendanceDeviceController extends Controller
             }
 
             // Check-out
-            $log->update([
+            $latestLog->update([
                 'check_out' => now(),
             ]);
 
@@ -113,5 +92,45 @@ class AttendanceDeviceController extends Controller
                 'time' => now()->format('H:i'),
             ]);
         }
+
+        // If we reach here, it's a check-in.
+        // First check if they already have a completed log today and double shift is not allowed
+        if ($latestLog && !is_null($latestLog->check_out) && !$user->allow_double_shift) {
+            return response()->json([
+                'status' => 'already_done',
+                'name' => $user->name,
+            ]);
+        }
+
+        // Calculate status_in based on shift
+        $statusIn = 'on_time';
+        if ($user->default_shift_id && $user->defaultShift) {
+            $shift = $user->defaultShift;
+            $nowTime = now()->format('H:i:s');
+            
+            // Calculate late threshold time
+            $thresholdTime = \Carbon\Carbon::parse($shift->start_time)->addMinutes($shift->late_threshold)->format('H:i:s');
+            
+            if ($nowTime > $thresholdTime) {
+                $statusIn = 'late';
+            }
+        }
+
+        // Check-in
+        \App\Models\AttendanceLog::create([
+            'user_id' => $user->id,
+            'date' => now()->toDateString(),
+            'check_in' => now(),
+            'source' => 'iot',
+            'shift_id' => $user->default_shift_id,
+            'status_in' => $statusIn,
+        ]);
+
+        return response()->json([
+            'status' => 'check_in',
+            'name' => $user->name,
+            'time' => now()->format('H:i'),
+            'status_in' => $statusIn
+        ]);
     }
 }

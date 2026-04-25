@@ -263,3 +263,48 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+    const mqttHost = '{{ config("services.mqtt.host") }}';
+    const mqttWsPort = '{{ config("services.mqtt.ws_port") }}';
+    const mqttUser = '{{ config("services.mqtt.username") }}';
+    const mqttPass = '{{ config("services.mqtt.password") }}';
+    
+    const brokerUrl = mqttWsPort 
+        ? `wss://${mqttHost}:${mqttWsPort}/mqtt`
+        : `wss://${mqttHost}/mqtt`;
+        
+    const client = mqtt.connect(brokerUrl, {
+        username: mqttUser,
+        password: mqttPass,
+        clientId: 'keshir_temp_' + Math.random().toString(16).substr(2, 8)
+    });
+
+    client.on('connect', function () {
+        console.log('MQTT Connected for auto-refresh');
+        // Listen to responses from API or commands to auto-refresh
+        client.subscribe('keshir/attendance/+/down/response');
+        client.subscribe('keshir/attendance/+/down/cmd');
+    });
+
+    client.on('message', function (topic, message) {
+        try {
+            const data = JSON.parse(message.toString());
+            const topicType = topic.split('/').pop();
+            
+            if (topicType === 'response' && (data.status === 'check_in' || data.status === 'check_out')) {
+                // Auto refresh if a valid tap was processed
+                setTimeout(() => location.reload(), 2000);
+            }
+            if (topicType === 'cmd' && data.action === 'register_success') {
+                // Auto refresh if a card was registered
+                setTimeout(() => location.reload(), 2000);
+            }
+        } catch (e) {
+            console.error('MQTT Parse Error', e);
+        }
+    });
+</script>
+@endpush

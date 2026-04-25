@@ -540,11 +540,15 @@
             <span class="badge badge-info">{{ $logs->count() }} record</span>
         </div>
         <div style="overflow-x: auto;">
-            <table class="att-table">
+            @forelse($logsByDate as $date => $dailyLogs)
+            <div style="padding: 1rem; background: var(--bg); border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); font-weight: 700; color: var(--text);">
+                📅 {{ \Carbon\Carbon::parse($date)->translatedFormat('l, d F Y') }}
+            </div>
+            <table class="att-table" style="margin-bottom: 1rem;">
                 <thead>
                     <tr>
-                        <th>Tanggal</th>
                         <th>Karyawan</th>
+                        <th>Shift</th>
                         <th>Check In</th>
                         <th>Check Out</th>
                         <th>Durasi</th>
@@ -554,7 +558,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                @forelse($logs as $log)
+                @foreach($dailyLogs as $log)
                     @php
                         $duration = null;
                         if ($log->check_in && $log->check_out) {
@@ -565,12 +569,6 @@
                         }
                     @endphp
                     <tr>
-                        <td style="font-weight: 600;">
-                            {{ \Carbon\Carbon::parse($log->date)->translatedFormat('d M Y') }}
-                            <div style="font-size: 0.75rem; color: var(--muted); font-weight: 400;">
-                                {{ \Carbon\Carbon::parse($log->date)->translatedFormat('l') }}
-                            </div>
-                        </td>
                         <td>
                             <div class="staff-cell">
                                 <div class="avatar">{{ strtoupper(substr($log->user->name ?? '?', 0, 1)) }}</div>
@@ -581,8 +579,20 @@
                             </div>
                         </td>
                         <td>
+                            @if($log->shift)
+                                <span class="badge" style="background-color: {{ $log->shift->color }}20; color: {{ $log->shift->color }}; border: 1px solid {{ $log->shift->color }}40;">
+                                    {{ $log->shift->name }}
+                                </span>
+                            @else
+                                <span style="color: var(--muted); font-size: 0.8rem;">—</span>
+                            @endif
+                        </td>
+                        <td>
                             @if($log->check_in)
                                 <span style="font-weight: 600; color: #10b981;">{{ $log->check_in->format('H:i') }}</span>
+                                @if($log->status_in === 'late')
+                                    <div style="font-size: 0.7rem; color: #ef4444; font-weight: 700; margin-top: 2px;">⏰ TELAT</div>
+                                @endif
                             @else
                                 <span style="color: var(--muted);">—</span>
                             @endif
@@ -590,6 +600,9 @@
                         <td>
                             @if($log->check_out)
                                 <span style="font-weight: 600; color: #ef4444;">{{ $log->check_out->format('H:i') }}</span>
+                                @if($log->status_out === 'auto_checkout')
+                                    <div style="font-size: 0.7rem; color: #f59e0b; font-weight: 700; margin-top: 2px;">⚠️ AUTO</div>
+                                @endif
                             @else
                                 <span style="color: var(--muted);">—</span>
                             @endif
@@ -609,13 +622,15 @@
                             @endif
                         </td>
                         <td>
-                            @if($log->check_in && $log->check_out)
-                                <span class="badge badge-success">✅ Selesai</span>
-                            @elseif($log->check_in)
-                                <span class="badge badge-warning">🟡 Sedang Kerja</span>
-                            @else
-                                <span class="badge badge-danger">❌ Tidak Lengkap</span>
-                            @endif
+                            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                @if($log->check_in && $log->check_out)
+                                    <span class="badge badge-success">✅ Lengkap</span>
+                                @elseif($log->check_in)
+                                    <span class="badge badge-warning">🟡 Kerja</span>
+                                @else
+                                    <span class="badge badge-danger">❌ Alpha</span>
+                                @endif
+                            </div>
                         </td>
                         <td>
                             <div class="action-group">
@@ -650,18 +665,15 @@
                             </div>
                         </td>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="8">
-                            <div class="empty-state-att">
-                                <div class="icon">📋</div>
-                                <p>Tidak ada data absensi untuk periode ini.</p>
-                            </div>
-                        </td>
-                    </tr>
-                @endforelse
+                @endforeach
                 </tbody>
             </table>
+            @empty
+            <div class="empty-state-att">
+                <div class="icon">📋</div>
+                <p>Tidak ada data absensi untuk periode ini.</p>
+            </div>
+            @endforelse
         </div>
     </div>
 </div>
@@ -850,7 +862,7 @@
     
     // Connect to MQTT via WebSocket
     const brokerUrl = mqttWsPort 
-        ? `wss://${mqttHost}:${mqttWsPort}/mqtt`
+        ? `ws://${mqttHost}:${mqttWsPort}/mqtt`
         : `wss://${mqttHost}/mqtt`;
     const client = mqtt.connect(brokerUrl, {
         username: mqttUser,
@@ -867,6 +879,10 @@
         // Subscribe to BOTH event (registration) and tap (daily attendance)
         client.subscribe('keshir/attendance/+/up/event');
         client.subscribe('keshir/attendance/+/up/tap');
+        
+        // Listen to responses and commands to trigger auto-refresh on all dashboard clients
+        client.subscribe('keshir/attendance/+/down/response');
+        client.subscribe('keshir/attendance/+/down/cmd');
     });
 
     client.on('offline', function () {
@@ -878,7 +894,17 @@
         try {
             const data = JSON.parse(message.toString());
             const targetDevice = topic.split('/')[2];
-            const topicType = topic.split('/').pop(); // 'event' or 'tap'
+            const topicType = topic.split('/').pop(); // 'event', 'tap', 'response', or 'cmd'
+
+            // --- 0. AUTO REFRESH DARI CLIENT LAIN ---
+            if (topicType === 'response' && (data.status === 'check_in' || data.status === 'check_out')) {
+                // Ada yang berhasil check_in/out dari client mana saja
+                setTimeout(() => location.reload(), 2000);
+            }
+            if (topicType === 'cmd' && data.action === 'register_success') {
+                // Ada yang berhasil register kartu dari client mana saja
+                setTimeout(() => location.reload(), 2000);
+            }
 
             // --- 1. MODE REGISTRASI KARTU ---
             if (topicType === 'event' && data.event === 'card_scanned' && data.uid) {
