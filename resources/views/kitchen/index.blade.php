@@ -37,7 +37,7 @@
             background: linear-gradient(180deg, var(--bg) 0%, #e2e8f0 100%);
             color: var(--text); 
             min-height: 100vh;
-            font-size: 18px;
+            font-size: 14px;
         }
         
         /* Modern Navigation - Light */
@@ -124,8 +124,8 @@
             box-shadow: 0 4px 15px var(--success-glow);
         }
         .btn-success:hover { 
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 8px 25px var(--success-glow);
+            box-shadow: 0 6px 20px var(--success-glow);
+            filter: brightness(1.05);
         }
         .btn-warning { 
             background: linear-gradient(135deg, var(--cooking) 0%, #ea580c 100%); 
@@ -133,8 +133,8 @@
             box-shadow: 0 4px 15px var(--cooking-glow);
         }
         .btn-warning:hover { 
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 8px 25px var(--cooking-glow);
+            box-shadow: 0 6px 20px var(--cooking-glow);
+            filter: brightness(1.05);
         }
         .btn-ghost { 
             background: rgba(255,255,255,0.15); 
@@ -257,8 +257,7 @@
             transition: all 0.2s ease;
         }
         .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
         }
         .stat-icon {
             width: 56px;
@@ -317,8 +316,7 @@
             transition: all 0.3s ease;
         }
         .ticket:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
         }
         
         .ticket-header {
@@ -360,6 +358,17 @@
             font-weight: 700;
             backdrop-filter: blur(10px);
         }
+        .ticket-header .order-type.takeaway {
+            background: #fff;
+            color: #ea580c;
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.4);
+            animation: pulse-bg 1.5s infinite;
+        }
+        @keyframes pulse-bg {
+            0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+        }
         .ticket-header .timestamp {
             font-size: 1rem;
             opacity: 0.9;
@@ -381,12 +390,13 @@
             padding: 1rem 0;
             border-bottom: 1px solid #f1f5f9;
             transition: all 0.2s ease;
+            border-radius: 0.5rem;
         }
         .ticket-item:last-child { border-bottom: none; }
         .ticket-item:hover {
             background: var(--bg-light);
-            margin: 0 -1.5rem;
-            padding: 1rem 1.5rem;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
         }
         
         .item-info { flex: 1; }
@@ -672,12 +682,12 @@
             <div class="ticket">
                 <div class="ticket-header {{ $headerClass }}">
                     <div class="order-info">
-                        <span class="order-number">🧾 Order #{{ $ticket->id }}</span>
-                        <span class="order-type">
+                        <span class="order-number">🧾 {{ $ticket->customer_name ?: 'Order #' . ($ticket->bill_number ?? $ticket->id) }}</span>
+                        <span class="order-type {{ !$ticket->table ? 'takeaway' : '' }}">
                             @if($ticket->table)
-                                🪑 {{ $ticket->table->table_number }}
+                                🍽️ DINE IN : Meja {{ $ticket->table->table_number }}
                             @else
-                                🛍️ Takeaway
+                                🛍️ TAKEAWAY
                             @endif
                         </span>
                     </div>

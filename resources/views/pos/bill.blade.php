@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bill #{{ $transaction->bill_number ?? $transaction->id }} — Keshir POS</title>
+    <title>{{ $transaction->customer_name ?: 'Bill #' . ($transaction->bill_number ?? $transaction->id) }} — Keshir POS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
@@ -288,40 +288,92 @@
     <nav class="pos-nav">
         <div class="brand">
             <div class="brand-icon">🧾</div>
-            <h1>Bill #{{ $transaction->bill_number ?? $transaction->id }} · {{ $transaction->table ? $transaction->table->table_number : 'Takeaway' }}</h1>
+            <h1>
+                {{ $transaction->customer_name ?: 'Bill #' . ($transaction->bill_number ?? $transaction->id) }} · 
+                @if($transaction->table)
+                    🪑 Meja {{ $transaction->table->table_number }}
+                @else
+                    <span style="background:#fff;color:var(--primary);padding:0.2rem 0.6rem;border-radius:0.3rem;font-weight:900;box-shadow:0 0 10px rgba(0,0,0,0.1);">🛍️ TAKEAWAY</span>
+                @endif
+            </h1>
         </div>
         <div class="info">
             <a href="{{ route('pos.index') }}" class="btn btn-ghost btn-sm">← Kembali</a>
-            <form action="{{ route('pos.voidBill', $transaction) }}" method="POST" style="display:inline;" onsubmit="return confirm('YAKIN void bill ini? Semua item akan dibatalkan.')">
-                @csrf
-                <button type="submit" class="btn btn-danger btn-sm">🗑️ Void Bill</button>
-            </form>
+            @if($transaction->payment_status === 'paid')
+                <span class="badge badge-success" style="font-size:0.85rem;padding:0.4rem 0.8rem;">✅ LUNAS</span>
+            @else
+                <form action="{{ route('pos.voidBill', $transaction) }}" method="POST" style="display:inline;" onsubmit="return confirm('YAKIN void bill ini? Semua item akan dibatalkan.')">
+                    @csrf
+                    <button type="submit" class="btn btn-danger btn-sm">🗑️ Void Bill</button>
+                </form>
+            @endif
         </div>
     </nav>
 
     <div class="pos-layout">
-        <!-- Left: Product Catalog -->
+        <!-- Left: Product Catalog / Paid Summary -->
         <div class="pos-left">
             @if(session('success'))<div class="alert alert-success">✅ {{ session('success') }}</div>@endif
             @if(session('error'))<div class="alert alert-error">❌ {{ session('error') }}</div>@endif
+            @if(session('info'))<div class="alert" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:0.85rem 1rem;border-radius:0.75rem;margin-bottom:1rem;font-size:0.85rem;">ℹ️ {{ session('info') }}</div>@endif
             @if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 
-            <div class="cat-tabs">
-                <span class="cat-tab active" onclick="filterCategory('all')">Semua</span>
-                @foreach($categories as $cat)
-                    <span class="cat-tab" data-cat="{{ $cat->id }}" onclick="filterCategory({{ $cat->id }})">{{ $cat->name }}</span>
-                @endforeach
-            </div>
+            @if($transaction->payment_status === 'open')
+                {{-- OPEN BILL: Show product catalog --}}
+                <div class="cat-tabs">
+                    <span class="cat-tab active" onclick="filterCategory('all')">Semua</span>
+                    @foreach($categories as $cat)
+                        <span class="cat-tab" data-cat="{{ $cat->id }}" onclick="filterCategory({{ $cat->id }})">{{ $cat->name }}</span>
+                    @endforeach
+                </div>
 
-            <div class="product-grid">
-                @foreach($products as $p)
-                    <div class="product-card" data-cat="{{ $p->category_id }}" onclick="openAddModal({{ $p->id }})">
-                        <div class="name">{{ $p->name }}</div>
-                        <div class="price">Rp {{ number_format($p->base_price, 0, ',', '.') }}</div>
-                        @if($p->variants->count())<div class="variants">{{ $p->variants->count() }} varian tersedia</div>@endif
+                <div class="product-grid">
+                    @foreach($products as $p)
+                        <div class="product-card" data-cat="{{ $p->category_id }}" onclick="openAddModal({{ $p->id }})">
+                            <div class="name">{{ $p->name }}</div>
+                            <div class="price">Rp {{ number_format($p->base_price, 0, ',', '.') }}</div>
+                            @if($p->variants->count())<div class="variants">{{ $p->variants->count() }} varian tersedia</div>@endif
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                {{-- PAID BILL: Show summary & actions --}}
+                <div style="max-width:600px;margin:0 auto;">
+                    <div style="background:var(--success-bg);border:2px solid #a7f3d0;border-radius:1rem;padding:2rem;text-align:center;margin-bottom:1.5rem;">
+                        <div style="font-size:3rem;margin-bottom:0.5rem;">✅</div>
+                        <h2 style="font-size:1.25rem;font-weight:800;color:#065f46;margin-bottom:0.25rem;">Pembayaran Lunas</h2>
+                        <p style="color:#047857;font-size:0.9rem;">Metode: {{ $transaction->payment_method === 'cash' ? '💵 Cash' : '📱 Digital' }}</p>
                     </div>
-                @endforeach
-            </div>
+
+                    <h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem;">📋 Status Pesanan</h3>
+                    @foreach($transaction->details as $d)
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;background:var(--card);border:1px solid var(--border);border-radius:0.75rem;margin-bottom:0.5rem;">
+                            <div>
+                                <div style="font-weight:600;">{{ $d->product->name }}</div>
+                                <div style="font-size:0.8rem;color:var(--muted);">{{ $d->qty }}x · Rp {{ number_format($d->price * $d->qty, 0, ',', '.') }}</div>
+                            </div>
+                            <div>
+                                @if($d->status === 'pending')<span class="badge badge-warning">⏳ Pending</span>
+                                @elseif($d->status === 'in_progress')<span class="badge badge-cooking">🔥 Dimasak</span>
+                                @elseif($d->status === 'done')<span class="badge badge-success">✅ Selesai</span>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+
+                    <div style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap;">
+                        <a href="{{ route('pos.receipt', $transaction) }}" class="btn btn-primary" style="flex:1;justify-content:center;">🧾 Lihat/Cetak Nota</a>
+                        <a href="{{ route('refunds.create', $transaction) }}" class="btn btn-outline" style="flex:1;justify-content:center;border-color:var(--danger);color:var(--danger);">↩️ Refund</a>
+                    </div>
+
+                    @if($transaction->table_id && $transaction->table && $transaction->table->status === 'occupied')
+                        <form action="{{ route('pos.clearTable', $transaction->table) }}" method="POST" style="margin-top:0.75rem;" onsubmit="return confirm('Kosongkan meja ini? Pastikan tamu sudah selesai.')">
+                            @csrf @method('PATCH')
+                            <button type="submit" class="btn btn-outline" style="width:100%;justify-content:center;">🪑 Kosongkan Meja {{ $transaction->table->table_number }}</button>
+                        </form>
+                    @endif
+                </div>
+            @endif
         </div>
 
         <!-- Right: Cart -->
@@ -347,10 +399,12 @@
                         </div>
                         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.5rem;">
                             <span style="font-weight:700;color:var(--text);">Rp {{ number_format(($d->price + $d->addons->sum('price')) * $d->qty, 0, ',', '.') }}</span>
-                            <form action="{{ route('pos.removeItem', [$transaction, $d->id]) }}" method="POST" onsubmit="return confirm('Hapus item?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-xs">🗑️</button>
-                            </form>
+                            @if($transaction->payment_status === 'open')
+                                <form action="{{ route('pos.removeItem', [$transaction, $d->id]) }}" method="POST" onsubmit="return confirm('Hapus item?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-xs">🗑️</button>
+                                </form>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -370,7 +424,7 @@
                 <div class="total-row"><span>Service</span><span>Rp {{ number_format($transaction->service_total, 0, ',', '.') }}</span></div>@endif
                 <div class="total-row grand"><span>TOTAL</span><span>Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</span></div>
 
-                @if($transaction->details->count() > 0)
+                @if($transaction->payment_status === 'open' && $transaction->details->count() > 0)
                     <button class="btn btn-success" style="width:100%;margin-top:0.75rem;justify-content:center;padding:0.85rem;" onclick="document.getElementById('checkout-modal').classList.add('show')">💰 Proses Pembayaran</button>
                 @endif
             </div>
@@ -415,7 +469,7 @@
     <!-- Checkout Modal -->
     <div class="modal-overlay" id="checkout-modal" onclick="if(event.target===this) this.classList.remove('show')">
         <div class="modal">
-            <h3>💰 Pembayaran — Bill #{{ $transaction->bill_number ?? $transaction->id }}</h3>
+            <h3>💰 Pembayaran — {{ $transaction->customer_name ?: 'Bill #' . ($transaction->bill_number ?? $transaction->id) }}</h3>
             <div style="font-size:1.5rem;font-weight:800;color:var(--primary);text-align:center;margin-bottom:1.5rem;padding:1rem;background:var(--primary-50);border-radius:0.75rem;">
                 Total: Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}
             </div>

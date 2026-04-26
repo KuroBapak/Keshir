@@ -225,7 +225,7 @@
             @csrf
             <div class="form-group">
                 <label>Total Uang Fisik di Laci (Rp)</label>
-                <input type="number" name="ending_cash" class="form-control" step="100" min="0" required placeholder="Hitung uang fisik di laci...">
+                <input type="number" name="ending_cash" class="form-control" step="1" min="0" required placeholder="Hitung uang fisik di laci...">
                 <small style="color: var(--muted); font-size: 0.8rem; display: block; margin-top: 0.35rem;">
                     Hitung semua uang tunai yang ada di laci kas
                 </small>
@@ -245,7 +245,7 @@
     <form action="{{ route('cash-drawer.open') }}" method="POST" class="shift-open-form">
         @csrf
         <div class="form-group">
-            <input type="number" name="starting_cash" class="form-control" step="100" min="0" required placeholder="Modal awal (Rp)" style="width: 200px;">
+            <input type="number" name="starting_cash" class="form-control" step="1" min="0" required placeholder="Modal awal (Rp)" style="width: 200px;">
         </div>
         <button type="submit" class="btn btn-success">🔓 Buka Shift</button>
     </form>

@@ -215,7 +215,7 @@ class CheckoutController extends Controller
                     $transactionInfo = $status->transaction_status ?? '';
                     if ($transactionInfo === 'capture' || $transactionInfo === 'settlement') {
                         // Process Success
-                        $transaction->payment->update(['status' => 'success', 'amount_paid' => (float)$status->gross_amount]);
+                        $transaction->payment->update(['status' => 'paid', 'amount_paid' => (float)$status->gross_amount]);
                         $transaction->update(['payment_status' => 'paid']);
                         $transaction->load('details.addons');
                         foreach ($transaction->details as $detail) {

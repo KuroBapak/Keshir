@@ -19,7 +19,7 @@
         @csrf
         <div class="form-group">
             <label>Jumlah Refund (Rp)</label>
-            <input type="number" name="amount" class="form-control" step="100" min="1" max="{{ $transaction->grand_total }}" value="{{ $transaction->grand_total }}" required>
+            <input type="number" name="amount" class="form-control" step="1" min="1" max="{{ $transaction->grand_total }}" value="{{ $transaction->grand_total }}" required>
         </div>
         <div class="form-group">
             <label>Alasan Refund</label>

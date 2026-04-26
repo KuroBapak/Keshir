@@ -5,15 +5,37 @@ namespace App\Http\Controllers;
 use App\Models\CashDrawer;
 use App\Models\Category;
 use App\Models\Discount;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Table;
 use App\Models\Transaction;
 use App\Services\TransactionService;
 use Illuminate\Http\Request;
+use Midtrans\Config;
+use Midtrans\Snap;
 
 class PosController extends Controller
 {
-    public function __construct(private TransactionService $transactionService) {}
+    public function __construct(private TransactionService $transactionService)
+    {
+        $this->setupMidtrans();
+    }
+
+    private function setupMidtrans()
+    {
+        Config::$serverKey = env('MIDTRANS_SERVER_KEY', config('midtrans.server_key'));
+        $isProdEnv = env('MIDTRANS_IS_PRODUCTION', config('midtrans.is_production', false));
+        Config::$isProduction = is_string($isProdEnv) ? filter_var($isProdEnv, FILTER_VALIDATE_BOOLEAN) : $isProdEnv;
+        Config::$isSanitized = filter_var(env('MIDTRANS_IS_SANITIZED', config('midtrans.is_sanitized', true)), FILTER_VALIDATE_BOOLEAN);
+        Config::$is3ds = filter_var(env('MIDTRANS_IS_3DS', config('midtrans.is_3ds', true)), FILTER_VALIDATE_BOOLEAN);
+
+        if (!Config::$isProduction) {
+            Config::$curlOptions = [
+                \CURLOPT_SSL_VERIFYPEER => false,
+                \CURLOPT_HTTPHEADER => ['X-Midtrans-Local: true']
+            ];
+        }
+    }
 
     /**
      * Main POS page — catalog + cart + open bills.
@@ -27,15 +49,20 @@ class PosController extends Controller
         $tables = Table::where('status', 'available')->get();
         $discounts = Discount::where('is_active', true)->get();
 
-        // Show open bills + paid bills that still have items being cooked
+        // Get active shift for this cashier to show all their bills in the current shift
+        $activeShift = CashDrawer::where('user_id', auth()->id())
+            ->where('status', 'open')
+            ->latest()
+            ->first();
+
+        // Show ALL bills for the current shift (open, paid, void, refunded)
+        // They will stack up until the shift is closed.
         $openBills = Transaction::with(['details.product', 'details.variant', 'table'])
             ->where('cashier_id', auth()->id())
-            ->where(function ($q) {
-                $q->where('payment_status', 'open')
-                  ->orWhere(function ($q2) {
-                      $q2->where('payment_status', 'paid')
-                         ->whereHas('details', fn($d) => $d->whereIn('status', ['pending', 'in_progress']));
-                  });
+            ->when($activeShift, function ($query) use ($activeShift) {
+                return $query->where('created_at', '>=', $activeShift->opened_at);
+            }, function ($query) {
+                return $query->whereDate('created_at', now()->toDateString());
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -67,11 +94,18 @@ class PosController extends Controller
 
         $request->validate([
             'table_id' => 'nullable|exists:tables,id',
-            'order_type' => 'required|in:dine_in,takeaway',
+            'order_type' => 'required|in:dine_in,take_away',
+            'customer_name' => 'nullable|string|max:255',
         ]);
 
+        $data = $request->only(['table_id', 'order_type', 'customer_name']);
+        
+        if ($data['order_type'] === 'take_away') {
+            $data['table_id'] = null;
+        }
+
         $bill = $this->transactionService->createOpenBill(
-            $request->only(['table_id', 'order_type']),
+            $data,
             auth()->id()
         );
 
@@ -83,7 +117,6 @@ class PosController extends Controller
      */
     public function showBill(Transaction $transaction)
     {
-        $this->authorizeAccess($transaction);
 
         $transaction->load([
             'details.product', 'details.variant', 'details.addons.addon',
@@ -102,7 +135,7 @@ class PosController extends Controller
      */
     public function addItem(Request $request, Transaction $transaction)
     {
-        $this->authorizeAccess($transaction);
+        $this->authorizeEdit($transaction);
 
         $request->validate([
             'product_id' => 'required|exists:products,id',
@@ -125,7 +158,7 @@ class PosController extends Controller
      */
     public function removeItem(Transaction $transaction, $detailId)
     {
-        $this->authorizeAccess($transaction);
+        $this->authorizeEdit($transaction);
         $detail = $transaction->details()->findOrFail($detailId);
         $this->transactionService->removeItemFromBill($transaction, $detail);
         return back()->with('success', 'Item dihapus.');
@@ -136,7 +169,7 @@ class PosController extends Controller
      */
     public function voidBill(Transaction $transaction)
     {
-        $this->authorizeAccess($transaction);
+        $this->authorizeEdit($transaction);
         $this->transactionService->voidBill($transaction);
         return redirect()->route('pos.index')->with('success', 'Bill #' . $transaction->id . ' telah divoid.');
     }
@@ -146,7 +179,7 @@ class PosController extends Controller
      */
     public function checkout(Request $request, Transaction $transaction)
     {
-        $this->authorizeAccess($transaction);
+        $this->authorizeEdit($transaction);
 
         $request->validate([
             'method' => 'required|in:cash,digital',
@@ -167,7 +200,94 @@ class PosController extends Controller
             'method', 'amount_paid', 'discount_id',
         ]));
 
-        return redirect()->route('pos.receipt', $result)->with('success', 'Pembayaran berhasil!');
+        // For cash: direct to receipt
+        if ($request->method === 'cash') {
+            return redirect()->route('pos.receipt', $result)->with('success', 'Pembayaran berhasil!');
+        }
+
+        // For digital: redirect to POS payment page with Snap token
+        return redirect()->route('pos.payment', $result);
+    }
+
+    /**
+     * Show Midtrans payment page for a POS digital bill.
+     */
+    public function payment(Transaction $transaction)
+    {
+        $transaction->load(['details.product', 'details.variant', 'details.addons.addon', 'table', 'discount']);
+
+        // Generate Midtrans Snap Token
+        $this->transactionService->recalculateTotals($transaction->fresh());
+        $transaction->refresh();
+
+        $midtransParams = [
+            'transaction_details' => [
+                'order_id' => 'POS-' . $transaction->id . '-' . time(),
+                'gross_amount' => (int) $transaction->grand_total,
+            ],
+            'customer_details' => [
+                'first_name' => $transaction->customer_name ?? 'Pelanggan POS',
+            ],
+        ];
+
+        try {
+            $snapToken = Snap::getSnapToken($midtransParams);
+
+            // Create or update payment record
+            $payment = $transaction->payment;
+            if ($payment) {
+                $payment->update(['midtrans_reference' => $midtransParams['transaction_details']['order_id']]);
+            } else {
+                Payment::create([
+                    'transaction_id' => $transaction->id,
+                    'method' => 'digital',
+                    'status' => 'pending',
+                    'midtrans_reference' => $midtransParams['transaction_details']['order_id'],
+                ]);
+            }
+
+            return view('pos.payment', compact('snapToken', 'transaction'));
+
+        } catch (\Exception $e) {
+            \Log::error('POS Midtrans Snap Error: ' . $e->getMessage());
+            return redirect()->route('pos.bill', $transaction)
+                ->with('error', 'Gagal memproses pembayaran digital: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Confirm POS digital payment after Midtrans success callback.
+     */
+    public function confirmDigital(Request $request, Transaction $transaction)
+    {
+        $transaction->update(['payment_status' => 'paid']);
+
+        if ($transaction->payment) {
+            $transaction->payment->update([
+                'status' => 'paid',
+                'amount_paid' => $transaction->grand_total,
+            ]);
+        }
+
+        // Table remains occupied until cashier clears it manually from the Tables menu
+        // if ($transaction->table_id) {
+        //     $transaction->table()->update(['status' => 'available']);
+        // }
+
+        // Auto-log to cash drawer if applicable
+        $activeDrawer = CashDrawer::where('user_id', $transaction->cashier_id)
+            ->where('status', 'open')
+            ->first();
+        if ($activeDrawer) {
+            $activeDrawer->logs()->create([
+                'type' => 'in',
+                'amount' => $transaction->grand_total,
+                'description' => 'Digital Payment Bill #' . $transaction->id,
+                'transaction_id' => $transaction->id,
+            ]);
+        }
+
+        return redirect()->route('pos.receipt', $transaction)->with('success', 'Pembayaran digital berhasil!');
     }
 
     /**
@@ -182,7 +302,7 @@ class PosController extends Controller
         return view('pos.receipt', compact('transaction'));
     }
 
-    private function authorizeAccess(Transaction $transaction): void
+    private function authorizeEdit(Transaction $transaction): void
     {
         if ($transaction->payment_status !== 'open') {
             abort(403, 'Bill ini sudah tidak bisa diedit.');

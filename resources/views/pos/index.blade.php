@@ -512,7 +512,7 @@
         }
         .new-bill-form {
             display: grid;
-            grid-template-columns: 1fr 1fr auto;
+            grid-template-columns: 1fr 1fr 1.5fr auto;
             gap: 1rem;
             align-items: flex-end;
         }
@@ -722,19 +722,23 @@
                     @csrf
                     <div class="form-group">
                         <label data-i18n="pos.order_type">Tipe Pesanan</label>
-                        <select name="order_type" class="form-control" required>
+                        <select name="order_type" class="form-control" required id="orderTypeSelect">
                             <option value="dine_in" data-i18n-opt="dine_in">🍽️ Dine In</option>
-                            <option value="takeaway" data-i18n-opt="takeaway">🛍️ Takeaway</option>
+                            <option value="take_away" data-i18n-opt="takeaway">🛍️ Takeaway</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label data-i18n="pos.select_table_label">Pilih Meja</label>
-                        <select name="table_id" class="form-control">
+                        <select name="table_id" class="form-control" id="tableSelect">
                             <option value="" data-i18n-opt="no_table">— Tanpa Meja —</option>
                             @foreach($tables as $t)
                                 <option value="{{ $t->id }}">{{ $t->table_number }} ({{ $t->capacity }} kursi)</option>
                             @endforeach
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Pelanggan (Opsional)</label>
+                        <input type="text" name="customer_name" class="form-control" placeholder="Contoh: Kevin">
                     </div>
                     <button type="submit" class="btn btn-primary btn-lg" data-i18n="pos.create_bill" {{ !$hasActiveShift ? 'disabled style=opacity:0.5;cursor:not-allowed;' : '' }}>
                         ➕ Buat Bill
@@ -750,30 +754,43 @@
             @if($openBills->count() > 0)
             <div class="bills-grid">
                 @foreach($openBills as $bill)
-                    <a href="{{ $bill->payment_status === 'open' ? route('pos.bill', $bill) : '#' }}" style="text-decoration:none;{{ $bill->payment_status !== 'open' ? 'pointer-events:none;' : '' }}">
-                        <div class="bill-card {{ $bill->payment_status === 'paid' ? 'paid' : '' }}">
-                            <div class="bill-header">
-                                <h4>Bill #{{ $bill->bill_number ?? $bill->id }}</h4>
-                                <div class="badges">
-                                    @if($bill->payment_status === 'paid')
-                                        <span class="badge badge-success">✅ Paid</span>
-                                    @endif
-                                    <span class="badge badge-{{ $bill->order_type === 'dine_in' ? 'primary' : 'info' }}">
-                                        {{ $bill->order_type === 'dine_in' ? '🍽️ Dine In' : '🛍️ Takeaway' }}
-                                    </span>
+                    <a href="{{ route('pos.bill', $bill) }}" style="text-decoration:none;">
+                            <div class="bill-card {{ in_array($bill->payment_status, ['paid', 'refunded']) ? 'paid' : '' }} {{ $bill->payment_status === 'void' ? 'void' : '' }}" style="{{ in_array($bill->payment_status, ['void', 'refunded']) ? 'opacity:0.7;' : '' }}">
+                                <div class="bill-header">
+                                    <h4 style="{{ in_array($bill->payment_status, ['void', 'refunded']) ? 'text-decoration:line-through;' : '' }}">{{ $bill->customer_name ?: 'Bill #' . ($bill->bill_number ?? $bill->id) }}</h4>
+                                    <div class="badges">
+                                        @if($bill->payment_status === 'paid')
+                                            <span class="badge badge-success">✅ Paid</span>
+                                        @elseif($bill->payment_status === 'void')
+                                            <span class="badge badge-danger">🗑️ Void</span>
+                                        @elseif($bill->payment_status === 'refunded')
+                                            <span class="badge badge-danger">↩️ Refunded</span>
+                                        @endif
+                                        <span class="badge badge-{{ $bill->order_type === 'dine_in' ? 'primary' : 'info' }}">
+                                            {{ $bill->order_type === 'dine_in' ? '🍽️ Dine In' : '🛍️ Takeaway' }}
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="meta">
-                                <span>{{ $bill->table ? '🪑 ' . $bill->table->table_number : '🛍️ No Table' }}</span>
-                                <span>📦 {{ $bill->details->count() }} item</span>
-                                <span>⏰ {{ $bill->created_at->diffForHumans() }}</span>
-                            </div>
-                            @if($bill->payment_status === 'paid')
-                                <div style="margin-top: 0.5rem;">
-                                    <span class="badge badge-warning">🔥 Sedang Dimasak</span>
+                                <div class="meta">
+                                    <span>{{ $bill->table ? '🪑 ' . $bill->table->table_number : '🛍️ No Table' }}</span>
+                                    <span>📦 {{ $bill->details->count() }} item</span>
+                                    <span>⏰ {{ $bill->created_at->diffForHumans() }}</span>
                                 </div>
-                            @endif
-                            <div class="amount">Rp {{ number_format($bill->grand_total, 0, ',', '.') }}</div>
+                                @php
+                                    $isCooking = $bill->details->contains(function ($detail) {
+                                        return in_array($detail->status, ['pending', 'in_progress']);
+                                    });
+                                @endphp
+                                @if(in_array($bill->payment_status, ['open', 'paid']) && $isCooking && $bill->details->count() > 0)
+                                    <div style="margin-top: 0.5rem;">
+                                        <span class="badge badge-warning">🔥 Sedang Dimasak</span>
+                                    </div>
+                                @elseif($bill->payment_status === 'paid' && !$isCooking && $bill->details->count() > 0)
+                                    <div style="margin-top: 0.5rem;">
+                                        <span class="badge badge-success">✅ Pesanan Selesai</span>
+                                    </div>
+                                @endif
+                                <div class="amount" style="{{ in_array($bill->payment_status, ['void', 'refunded']) ? 'text-decoration:line-through;color:var(--muted);background:none;-webkit-text-fill-color:var(--muted);' : '' }}">Rp {{ number_format($bill->grand_total, 0, ',', '.') }}</div>
                         </div>
                     </a>
                 @endforeach
@@ -943,6 +960,25 @@
                     opt.textContent = selectTranslations[lang][key];
                 }
             });
+        }
+        
+        // Handle Table Selection toggle based on Order Type
+        const orderTypeSelect = document.getElementById('orderTypeSelect');
+        const tableSelect = document.getElementById('tableSelect');
+        
+        if (orderTypeSelect && tableSelect) {
+            orderTypeSelect.addEventListener('change', function() {
+                if (this.value === 'take_away') {
+                    tableSelect.value = '';
+                    tableSelect.disabled = true;
+                    tableSelect.style.opacity = '0.5';
+                } else {
+                    tableSelect.disabled = false;
+                    tableSelect.style.opacity = '1';
+                }
+            });
+            // trigger on load
+            orderTypeSelect.dispatchEvent(new Event('change'));
         }
     });
     </script>

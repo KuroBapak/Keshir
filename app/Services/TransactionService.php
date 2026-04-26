@@ -32,6 +32,7 @@ class TransactionService
             $transaction = Transaction::create([
                 'order_type' => $data['order_type'] ?? 'dine_in',
                 'source' => 'pos',
+                'customer_name' => !empty($data['customer_name']) ? $data['customer_name'] : ('Bill ' . $billNumber),
                 'table_id' => $data['table_id'] ?? null,
                 'cashier_id' => $cashierId,
                 'cash_drawer_id' => $activeDrawer?->id,
@@ -169,7 +170,7 @@ class TransactionService
 
             // Update transaction status
             $transaction->update([
-                'payment_status' => $method === 'cash' ? 'paid' : 'pending',
+                'payment_status' => $method === 'cash' ? 'paid' : 'open',
                 'payment_method' => $method,
             ]);
 
@@ -189,10 +190,10 @@ class TransactionService
                 }
             }
 
-            // Release table
-            if ($transaction->table_id) {
-                $transaction->table()->update(['status' => 'available']);
-            }
+            // Table remains occupied until cashier clears it manually from the Tables menu
+            // if ($method === 'cash' && $transaction->table_id) {
+            //     $transaction->table()->update(['status' => 'available']);
+            // }
 
             return $transaction->fresh();
         });

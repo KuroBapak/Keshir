@@ -134,6 +134,8 @@ Route::middleware(['auth', 'attendance'])->group(function () {
         Route::delete('/bill/{transaction}/item/{detail}', [PosController::class, 'removeItem'])->name('pos.removeItem');
         Route::post('/bill/{transaction}/void', [PosController::class, 'voidBill'])->name('pos.voidBill');
         Route::post('/bill/{transaction}/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
+        Route::get('/bill/{transaction}/payment', [PosController::class, 'payment'])->name('pos.payment');
+        Route::post('/bill/{transaction}/confirm-digital', [PosController::class, 'confirmDigital'])->name('pos.confirmDigital');
         Route::get('/receipt/{transaction}', [PosController::class, 'receipt'])->name('pos.receipt');
         
         // Bookings

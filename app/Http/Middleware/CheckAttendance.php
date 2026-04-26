@@ -30,6 +30,7 @@ class CheckAttendance
         if ($user) {
             $log = AttendanceLog::where('user_id', $user->id)
                 ->where('date', now()->toDateString())
+                ->orderBy('created_at', 'desc')
                 ->first();
 
             // If user has checked out, block access and force logout

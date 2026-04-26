@@ -102,16 +102,46 @@ class AttendanceDeviceController extends Controller
             ]);
         }
 
-        // Calculate status_in based on shift
+        $now = now();
         $statusIn = 'on_time';
-        if ($user->default_shift_id && $user->defaultShift) {
-            $shift = $user->defaultShift;
-            $nowTime = now()->format('H:i:s');
+        $shiftToAssign = $user->defaultShift;
+
+        // Find the most appropriate active shift
+        $shifts = \App\Models\Shift::all();
+        $closestShift = null;
+        $minDiff = PHP_INT_MAX;
+        
+        foreach ($shifts as $s) {
+            $start = \Carbon\Carbon::parse($now->toDateString() . ' ' . $s->start_time);
+            $end = \Carbon\Carbon::parse($now->toDateString() . ' ' . $s->end_time);
+            if ($s->end_time < $s->start_time) {
+                $end->addDay();
+            }
             
-            // Calculate late threshold time
-            $thresholdTime = \Carbon\Carbon::parse($shift->start_time)->addMinutes($shift->late_threshold)->format('H:i:s');
+            // Allow checking in from 2 hours before start until end of shift
+            if ($now->between($start->copy()->subHours(2), $end)) {
+                $diff = abs($now->diffInMinutes($start));
+                if ($diff < $minDiff) {
+                    $minDiff = $diff;
+                    $closestShift = $s;
+                }
+            }
+        }
+
+        if ($closestShift) {
+            $shiftToAssign = $closestShift;
+        }
+
+        $shiftId = $shiftToAssign ? $shiftToAssign->id : null;
+
+        if ($shiftToAssign) {
+            $thresholdTime = \Carbon\Carbon::parse($shiftToAssign->start_time)
+                ->addMinutes($shiftToAssign->late_threshold);
             
-            if ($nowTime > $thresholdTime) {
+            // Re-parse threshold today for accurate comparison
+            $thresholdFull = \Carbon\Carbon::parse($now->toDateString() . ' ' . $thresholdTime->format('H:i:s'));
+            
+            if ($now->greaterThan($thresholdFull)) {
                 $statusIn = 'late';
             }
         }
@@ -119,10 +149,10 @@ class AttendanceDeviceController extends Controller
         // Check-in
         \App\Models\AttendanceLog::create([
             'user_id' => $user->id,
-            'date' => now()->toDateString(),
-            'check_in' => now(),
+            'date' => $now->toDateString(),
+            'check_in' => $now,
             'source' => 'iot',
-            'shift_id' => $user->default_shift_id,
+            'shift_id' => $shiftId,
             'status_in' => $statusIn,
         ]);
 

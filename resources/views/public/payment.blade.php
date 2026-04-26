@@ -16,10 +16,10 @@
         .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
     </style>
     <!-- Midtrans Snap.js -->
-    @if(config('midtrans.is_production'))
-        <script src="https://app.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
+    @if(env('MIDTRANS_IS_PRODUCTION', config('midtrans.is_production')))
+        <script src="https://app.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY', config('midtrans.client_key')) }}"></script>
     @else
-        <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
+        <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY', config('midtrans.client_key')) }}"></script>
     @endif
 </head>
 <body>
