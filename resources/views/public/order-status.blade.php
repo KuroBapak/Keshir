@@ -301,6 +301,9 @@
     </style>
     @if($transaction->payment_status === 'open')
         <meta http-equiv="refresh" content="10">
+    @elseif($transaction->order_type === 'booking' && $transaction->booking && $transaction->booking->status === 'pending')
+        {{-- Auto-refresh while waiting for cashier confirmation --}}
+        <meta http-equiv="refresh" content="15">
     @elseif(in_array('pending', $transaction->details->pluck('status')->toArray()) || in_array('in_progress', $transaction->details->pluck('status')->toArray()))
         <meta http-equiv="refresh" content="30">
     @endif
@@ -319,11 +322,27 @@
             $hasInProgress = in_array('in_progress', $transaction->details->pluck('status')->toArray());
             $hasPending = in_array('pending', $transaction->details->pluck('status')->toArray());
             $allDone = !$hasInProgress && !$hasPending;
+            $isBooking = $transaction->order_type === 'booking';
+            $bookingStatus = $isBooking && $transaction->booking ? $transaction->booking->status : null;
+            $bookingPendingApproval = $isBooking && $bookingStatus === 'pending';
+            $bookingConfirmed = $isBooking && $bookingStatus === 'confirmed';
+            $bookingCancelled = $isBooking && in_array($bookingStatus, ['cancelled']);
         @endphp
         
         <div class="status-card {{ $transaction->payment_status === 'paid' ? 'paid' : ($transaction->payment_status === 'void' ? 'void' : 'pending') }}">
             @if($transaction->payment_status === 'paid')
-                @if($hasInProgress)
+                {{-- BOOKING: Waiting for cashier approval --}}
+                @if($bookingPendingApproval)
+                    <div class="status-icon pending pulse">📅</div>
+                    <div class="badge badge-paid">✅ Pembayaran Berhasil</div>
+                    <h2 class="status-title">Menunggu Konfirmasi Kasir</h2>
+                    <p class="status-desc">Reservasi Anda sudah dibayar. Kasir akan mengonfirmasi reservasi Anda untuk tanggal <strong>{{ $transaction->booking->booking_time->translatedFormat('d M Y, H:i') }}</strong>. Halaman ini akan update otomatis.</p>
+                @elseif($bookingCancelled)
+                    <div class="status-icon void">❌</div>
+                    <div class="badge badge-void">Reservasi Ditolak</div>
+                    <h2 class="status-title">Reservasi Dibatalkan</h2>
+                    <p class="status-desc">Maaf, reservasi Anda tidak dapat dikonfirmasi oleh kasir. Silakan hubungi kami untuk informasi lebih lanjut.</p>
+                @elseif($hasInProgress)
                     <div class="status-icon cooking pulse">🔥</div>
                     <div class="badge badge-paid">✅ Pembayaran Berhasil</div>
                     <h2 class="status-title">Makanan Sedang Dimasak</h2>
@@ -331,8 +350,13 @@
                 @elseif($hasPending)
                     <div class="status-icon paid">👨‍🍳</div>
                     <div class="badge badge-paid">✅ Pembayaran Berhasil</div>
-                    <h2 class="status-title">Dalam Antrean Dapur</h2>
-                    <p class="status-desc">Pesanan sedang menunggu giliran untuk disiapkan.</p>
+                    @if($bookingConfirmed)
+                        <h2 class="status-title">Reservasi Dikonfirmasi! 🎉</h2>
+                        <p class="status-desc">Kasir sudah mengonfirmasi reservasi Anda. Pesanan sedang menunggu giliran untuk disiapkan.</p>
+                    @else
+                        <h2 class="status-title">Dalam Antrean Dapur</h2>
+                        <p class="status-desc">Pesanan sedang menunggu giliran untuk disiapkan.</p>
+                    @endif
                 @else
                     <div class="status-icon paid">🍽️</div>
                     <div class="badge badge-paid">✅ Pesanan Selesai</div>
@@ -341,24 +365,47 @@
                 @endif
                 
                 <!-- Progress Steps -->
-                <div class="progress-steps">
-                    <div class="progress-step">
-                        <div class="progress-dot done">✓</div>
-                        <span class="progress-label done">Bayar</span>
+                @if($isBooking)
+                    {{-- Booking progress: Bayar → Kasir Konfirmasi → Dimasak → Selesai --}}
+                    <div class="progress-steps">
+                        <div class="progress-step">
+                            <div class="progress-dot done">✓</div>
+                            <span class="progress-label done">Bayar</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot {{ $bookingPendingApproval ? 'active' : ($bookingConfirmed || $allDone ? 'done' : ($bookingCancelled ? '' : '')) }}">{{ $bookingConfirmed || $allDone ? '✓' : ($bookingPendingApproval ? '⏳' : ($bookingCancelled ? '✗' : '2')) }}</div>
+                            <span class="progress-label {{ $bookingPendingApproval ? 'active' : ($bookingConfirmed || $allDone ? 'done' : '') }}">Kasir</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot {{ $hasInProgress ? 'active' : ($allDone ? 'done' : '') }}">{{ $allDone ? '✓' : ($hasInProgress ? '🔥' : '3') }}</div>
+                            <span class="progress-label {{ $hasInProgress ? 'active' : ($allDone ? 'done' : '') }}">Dimasak</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot {{ $allDone && !$bookingPendingApproval ? 'done' : '' }}">{{ $allDone && !$bookingPendingApproval ? '✓' : '4' }}</div>
+                            <span class="progress-label {{ $allDone && !$bookingPendingApproval ? 'done' : '' }}">Selesai</span>
+                        </div>
                     </div>
-                    <div class="progress-step">
-                        <div class="progress-dot {{ $hasPending || $hasInProgress || $allDone ? 'done' : '' }}">{{ $hasPending || $hasInProgress || $allDone ? '✓' : '2' }}</div>
-                        <span class="progress-label {{ $hasPending || $hasInProgress || $allDone ? 'done' : '' }}">Antre</span>
+                @else
+                    {{-- Non-booking progress: Bayar → Antre → Dimasak → Selesai --}}
+                    <div class="progress-steps">
+                        <div class="progress-step">
+                            <div class="progress-dot done">✓</div>
+                            <span class="progress-label done">Bayar</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot {{ $hasPending || $hasInProgress || $allDone ? 'done' : '' }}">{{ $hasPending || $hasInProgress || $allDone ? '✓' : '2' }}</div>
+                            <span class="progress-label {{ $hasPending || $hasInProgress || $allDone ? 'done' : '' }}">Antre</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot {{ $hasInProgress ? 'active' : ($allDone ? 'done' : '') }}">{{ $allDone ? '✓' : ($hasInProgress ? '🔥' : '3') }}</div>
+                            <span class="progress-label {{ $hasInProgress ? 'active' : ($allDone ? 'done' : '') }}">Dimasak</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot {{ $allDone ? 'done' : '' }}">{{ $allDone ? '✓' : '4' }}</div>
+                            <span class="progress-label {{ $allDone ? 'done' : '' }}">Selesai</span>
+                        </div>
                     </div>
-                    <div class="progress-step">
-                        <div class="progress-dot {{ $hasInProgress ? 'active' : ($allDone ? 'done' : '') }}">{{ $allDone ? '✓' : ($hasInProgress ? '🔥' : '3') }}</div>
-                        <span class="progress-label {{ $hasInProgress ? 'active' : ($allDone ? 'done' : '') }}">Dimasak</span>
-                    </div>
-                    <div class="progress-step">
-                        <div class="progress-dot {{ $allDone ? 'done' : '' }}">{{ $allDone ? '✓' : '4' }}</div>
-                        <span class="progress-label {{ $allDone ? 'done' : '' }}">Selesai</span>
-                    </div>
-                </div>
+                @endif
             @elseif($transaction->payment_status === 'void')
                 <div class="status-icon void">❌</div>
                 <div class="badge badge-void">Dibatalkan</div>
@@ -389,10 +436,16 @@
                 <div class="info-label">Atas Nama</div>
                 <div class="info-value">{{ $transaction->customer_name }}</div>
             </div>
-            @if($transaction->order_type === 'dine_in' && $transaction->table)
-            <div class="info-card" style="grid-column: span 2;">
+            @if(($transaction->order_type === 'dine_in' || $transaction->order_type === 'booking') && $transaction->table)
+            <div class="info-card">
                 <div class="info-label">Meja</div>
                 <div class="info-value">{{ $transaction->table->table_number }}</div>
+            </div>
+            @endif
+            @if($transaction->order_type === 'booking' && $transaction->booking)
+            <div class="info-card">
+                <div class="info-label">Waktu Reservasi</div>
+                <div class="info-value">{{ $transaction->booking->booking_time->translatedFormat('d M Y, H:i') }}</div>
             </div>
             @endif
         </div>

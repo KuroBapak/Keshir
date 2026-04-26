@@ -16,16 +16,28 @@ class KitchenController extends Controller
      */
     public function index()
     {
-        $tickets = Transaction::with(['details.product', 'details.variant', 'details.addons.addon', 'table'])
+        $tickets = Transaction::with(['details.product', 'details.variant', 'details.addons.addon', 'table', 'booking'])
             ->where(function ($q) {
                 // POS orders go to kitchen immediately (Open Bill)
-                // QR orders MUST be paid first (FR-17)
                 $q->where(function ($q2) {
                     $q2->where('source', 'pos')
                        ->whereIn('payment_status', ['open', 'paid']);
-                })->orWhere(function ($q2) {
+                })
+                // QR orders MUST be paid first (FR-17)
+                // Booking orders: only show after cashier confirms the booking
+                // Dine-in / Takeaway: show immediately after payment
+                ->orWhere(function ($q2) {
                     $q2->where('source', 'qr')
-                       ->where('payment_status', 'paid');
+                       ->where('payment_status', 'paid')
+                       ->where(function ($q3) {
+                           // Non-booking QR orders (dine_in, take_away) → show immediately
+                           $q3->where('order_type', '!=', 'booking')
+                              // Booking QR orders → only show if cashier confirmed
+                              ->orWhere(function ($q4) {
+                                  $q4->where('order_type', 'booking')
+                                     ->whereHas('booking', fn($bq) => $bq->where('status', 'confirmed'));
+                              });
+                       });
                 });
             })
             ->whereHas('details', fn($q) => $q->whereIn('status', ['pending', 'in_progress']))

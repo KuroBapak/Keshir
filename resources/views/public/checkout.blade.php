@@ -28,6 +28,8 @@
             --success: #10b981;
             --danger: #ef4444;
             --danger-bg: #fee2e2;
+            --warning: #f59e0b;
+            --warning-bg: #fef3c7;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -106,24 +108,24 @@
             color: var(--text);
         }
         
-        /* Type Selector */
+        /* Type Selector — 3 options */
         .type-selector {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.6rem;
             margin-bottom: 1.5rem;
         }
         .type-option {
             border: 2px solid var(--border);
             border-radius: 1rem;
-            padding: 1.25rem 1rem;
+            padding: 1rem 0.75rem;
             text-align: center;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
             transition: all 0.2s ease;
             background: #fff;
             position: relative;
@@ -137,21 +139,43 @@
         .type-option.active::after {
             content: '✓';
             position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            width: 20px;
-            height: 20px;
+            top: 0.4rem;
+            right: 0.4rem;
+            width: 18px;
+            height: 18px;
             background: var(--primary);
             color: #fff;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
+            font-size: 0.6rem;
             font-weight: 700;
         }
-        .type-icon { font-size: 2rem; }
-        .type-label { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+        .type-icon { font-size: 1.75rem; }
+        .type-label { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+        .type-desc { font-size: 0.7rem; color: var(--muted); line-height: 1.3; }
+
+        /* Info Banner */
+        .info-banner {
+            background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
+            border: 1px solid #bfdbfe;
+            border-radius: 0.75rem;
+            padding: 0.85rem 1rem;
+            font-size: 0.8rem;
+            color: #1e40af;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+        .info-banner.warning {
+            background: linear-gradient(135deg, #fffbeb, var(--warning-bg));
+            border-color: #fde68a;
+            color: #92400e;
+        }
+        .info-banner .icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.05rem; }
         
         /* Form */
         .form-group { margin-bottom: 1.25rem; }
@@ -188,6 +212,31 @@
             background-color: #fff;
             cursor: pointer;
         }
+
+        /* Booking date section */
+        .booking-fields {
+            display: none;
+            background: #fefce8;
+            border: 1px solid #fde68a;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        .booking-fields.show { display: block; }
+        .booking-fields .section-subtitle {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #92400e;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .date-time-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
         
         /* Checkout Bar */
         .checkout-bar {
@@ -207,7 +256,7 @@
             display: block;
             width: 100%;
             text-align: center;
-            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: #fff;
             padding: 1rem;
             border-radius: 0.75rem;
@@ -215,12 +264,28 @@
             border: none;
             font-size: 1rem;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
             transition: all 0.2s ease;
         }
         .checkout-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        }
+        .checkout-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .midtrans-badge {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        @media (max-width: 400px) {
+            .type-selector { grid-template-columns: 1fr; }
+            .date-time-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -253,21 +318,27 @@
                     <label class="type-option active" id="type-dinein">
                         <input type="radio" name="order_type" value="dine_in" checked onchange="toggleType()">
                         <div class="type-icon">🍽️</div>
-                        <div class="type-label">Dine In / Takeaway</div>
+                        <div class="type-label">Dine In</div>
+                        <div class="type-desc">Makan di tempat</div>
+                    </label>
+                    <label class="type-option" id="type-takeaway">
+                        <input type="radio" name="order_type" value="takeaway" onchange="toggleType()">
+                        <div class="type-icon">🛍️</div>
+                        <div class="type-label">Takeaway</div>
+                        <div class="type-desc">Bawa pulang</div>
                     </label>
                     <label class="type-option" id="type-booking">
                         <input type="radio" name="order_type" value="booking" onchange="toggleType()">
                         <div class="type-icon">📅</div>
-                        <div class="type-label">Booking Tempat</div>
+                        <div class="type-label">Reservasi</div>
+                        <div class="type-desc">Pesan meja & hari</div>
                     </label>
                 </div>
 
-                <div class="form-group" id="dinein-toggle">
-                    <label class="form-label">Pilih Opsi <span class="form-hint">(Makan di tempat atau bawa pulang)</span></label>
-                    <select class="form-control" onchange="if(this.value==='takeaway'){document.getElementById('table-wrap').style.display='none';}else{document.getElementById('table-wrap').style.display='block';}">
-                        <option value="dine">🍽️ Makan di Tempat</option>
-                        <option value="takeaway">🛍️ Bawa Pulang (Takeaway)</option>
-                    </select>
+                <!-- Info: Booking needs cashier approval -->
+                <div class="info-banner warning" id="booking-info" style="display:none;">
+                    <span class="icon">ℹ️</span>
+                    <span>Reservasi akan divalidasi oleh kasir terlebih dahulu sebelum pesanan diproses ke dapur. Anda akan mendapat notifikasi di halaman status pesanan.</span>
                 </div>
             </div>
 
@@ -275,13 +346,14 @@
                 <div class="section-title">👤 Data Pemesan</div>
                 <div class="form-group">
                     <label class="form-label">Nama Lengkap</label>
-                    <input type="text" name="customer_name" class="form-control" required placeholder="Cth: Budi Santoso">
+                    <input type="text" name="customer_name" class="form-control" required placeholder="Cth: Budi Santoso" value="{{ old('customer_name') }}">
                 </div>
                 <div class="form-group">
                     <label class="form-label">No. WhatsApp</label>
-                    <input type="tel" name="phone" class="form-control" required placeholder="Cth: 08123456789">
+                    <input type="tel" name="phone" class="form-control" required placeholder="Cth: 08123456789" value="{{ old('phone') }}">
                 </div>
                 
+                <!-- Table Selection (hidden for takeaway) -->
                 <div id="table-wrap">
                     <div class="form-group">
                         <label class="form-label" id="lbl-table">Pilih Meja</label>
@@ -296,68 +368,141 @@
 
                 <div class="form-group" id="wrap-people">
                     <label class="form-label">Jumlah Orang</label>
-                    <input type="number" name="people_count" id="inp-people" class="form-control" min="1" placeholder="Cth: 2">
+                    <input type="number" name="people_count" id="inp-people" class="form-control" min="1" placeholder="Cth: 2" value="{{ old('people_count') }}">
                 </div>
 
-                <div class="form-group" id="wrap-booking" style="display:none;">
-                    <label class="form-label">Waktu Kedatangan</label>
-                    <input type="datetime-local" name="booking_time" id="inp-booking" class="form-control">
+                <!-- Booking Date & Time Fields -->
+                <div class="booking-fields" id="wrap-booking">
+                    <div class="section-subtitle">📅 Detail Reservasi</div>
+                    <div class="date-time-grid">
+                        <div class="form-group" style="margin-bottom:0.5rem;">
+                            <label class="form-label">Tanggal Kedatangan</label>
+                            <input type="date" id="inp-booking-date" class="form-control">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0.5rem;">
+                            <label class="form-label">Jam Kedatangan</label>
+                            <input type="time" id="inp-booking-time" class="form-control">
+                        </div>
+                    </div>
+                    <div style="font-size:0.75rem;color:#92400e;margin-top:0.5rem;">
+                        ⏰ Minimal reservasi 1 jam dari sekarang
+                    </div>
+                    <!-- Hidden combined datetime field for backend -->
+                    <input type="hidden" name="booking_time" id="inp-booking-combined">
                 </div>
             </div>
 
+            <!-- Payment Info -->
+            <div class="info-banner">
+                <span class="icon">💳</span>
+                <span>Pembayaran dilakukan secara online melalui <strong>Midtrans</strong> (QRIS, Transfer Bank, E-Wallet, dll). Pembayaran tunai tidak tersedia untuk pemesanan online.</span>
+            </div>
+
             <div class="checkout-bar">
-                <button type="button" onclick="submitForm()" class="checkout-btn">💳 Bayar Sekarang</button>
+                <button type="button" onclick="submitForm()" class="checkout-btn" id="btn-checkout">💳 Bayar via Midtrans</button>
+                <div class="midtrans-badge">🔒 Pembayaran aman dengan Midtrans</div>
             </div>
         </form>
     </div>
 
     <script>
+        // Set minimum date for booking (today)
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        document.getElementById('inp-booking-date').setAttribute('min', todayStr);
+
         function toggleType() {
-            const isBooking = document.querySelector('input[name="order_type"]:checked').value === 'booking';
+            const type = document.querySelector('input[name="order_type"]:checked').value;
             
-            document.getElementById('type-dinein').classList.toggle('active', !isBooking);
-            document.getElementById('type-booking').classList.toggle('active', isBooking);
+            // Reset all active states
+            document.getElementById('type-dinein').classList.remove('active');
+            document.getElementById('type-takeaway').classList.remove('active');
+            document.getElementById('type-booking').classList.remove('active');
             
-            document.getElementById('dinein-toggle').style.display = isBooking ? 'none' : 'block';
-            document.getElementById('wrap-booking').style.display = isBooking ? 'block' : 'none';
-            document.getElementById('table-wrap').style.display = 'block';
-            
-            document.getElementById('lbl-table').innerText = isBooking ? 'Pilih Meja Booking' : 'Pilih Meja Sekarang';
-            
-            document.getElementById('inp-booking').required = isBooking;
-            document.getElementById('inp-table').required = true;
-            document.getElementById('inp-people').required = true;
+            // Set active
+            if (type === 'dine_in') {
+                document.getElementById('type-dinein').classList.add('active');
+                document.getElementById('table-wrap').style.display = 'block';
+                document.getElementById('wrap-people').style.display = 'block';
+                document.getElementById('wrap-booking').classList.remove('show');
+                document.getElementById('booking-info').style.display = 'none';
+                document.getElementById('inp-table').required = true;
+                document.getElementById('inp-people').required = true;
+                document.getElementById('lbl-table').innerText = 'Pilih Meja';
+            } else if (type === 'takeaway') {
+                document.getElementById('type-takeaway').classList.add('active');
+                document.getElementById('table-wrap').style.display = 'none';
+                document.getElementById('wrap-people').style.display = 'none';
+                document.getElementById('wrap-booking').classList.remove('show');
+                document.getElementById('booking-info').style.display = 'none';
+                document.getElementById('inp-table').required = false;
+                document.getElementById('inp-people').required = false;
+            } else if (type === 'booking') {
+                document.getElementById('type-booking').classList.add('active');
+                document.getElementById('table-wrap').style.display = 'block';
+                document.getElementById('wrap-people').style.display = 'block';
+                document.getElementById('wrap-booking').classList.add('show');
+                document.getElementById('booking-info').style.display = 'flex';
+                document.getElementById('inp-table').required = true;
+                document.getElementById('inp-people').required = true;
+                document.getElementById('lbl-table').innerText = 'Pilih Meja Booking';
+            }
         }
+
+        function combineBookingDateTime() {
+            const date = document.getElementById('inp-booking-date').value;
+            const time = document.getElementById('inp-booking-time').value;
+            if (date && time) {
+                document.getElementById('inp-booking-combined').value = date + 'T' + time;
+            }
+        }
+
+        // Auto-combine on change
+        document.getElementById('inp-booking-date').addEventListener('change', combineBookingDateTime);
+        document.getElementById('inp-booking-time').addEventListener('change', combineBookingDateTime);
 
         async function submitForm() {
             const type = document.querySelector('input[name="order_type"]:checked').value;
             const form = document.getElementById('checkout-form');
+
+            // Booking validation
+            if (type === 'booking') {
+                const bookingDate = document.getElementById('inp-booking-date').value;
+                const bookingTime = document.getElementById('inp-booking-time').value;
+                
+                if (!bookingDate || !bookingTime) {
+                    alert('⚠️ Silakan pilih tanggal dan jam kedatangan untuk reservasi.');
+                    return;
+                }
+
+                // Validate minimum 1 hour from now
+                const bookingDateTime = new Date(bookingDate + 'T' + bookingTime);
+                const minTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+                
+                if (bookingDateTime < minTime) {
+                    alert('⚠️ Waktu reservasi minimal 1 jam dari sekarang.');
+                    return;
+                }
+
+                combineBookingDateTime();
+            }
+
+            // Dine-in validation: table required
             if (type === 'dine_in') {
-                const isTakeaway = document.querySelector('#dinein-toggle select').value === 'takeaway';
-                if (isTakeaway) {
-                    // Cek apakah sudah ada input hidden order_type=takeaway dari submit sebelumnya
-                    let hiddenInput = document.querySelector('input[type="hidden"][name="order_type"]');
-                    if (!hiddenInput) {
-                        hiddenInput = document.createElement('input');
-                        hiddenInput.type = 'hidden';
-                        hiddenInput.name = 'order_type';
-                        hiddenInput.value = 'takeaway';
-                        form.appendChild(hiddenInput);
-                    }
-                    
-                    document.getElementById('inp-table').required = false;
-                    document.getElementById('inp-people').required = false;
-                } else {
-                    // Hapus kalau ganti dari takeaway ke dine in
-                    const hiddenInput = document.querySelector('input[type="hidden"][name="order_type"]');
-                    if (hiddenInput) hiddenInput.remove();
+                if (!document.getElementById('inp-table').value) {
+                    alert('⚠️ Silakan pilih meja untuk Dine In.');
+                    return;
+                }
+                if (!document.getElementById('inp-people').value) {
+                    alert('⚠️ Silakan isi jumlah orang.');
+                    return;
                 }
             }
             
             if(form.reportValidity()) {
-                const btn = document.querySelector('.checkout-btn');
+                const btn = document.getElementById('btn-checkout');
                 const originalText = btn.innerHTML;
-                btn.innerHTML = '⏳ Memproses...';
+                btn.innerHTML = '⏳ Memproses pembayaran...';
                 btn.disabled = true;
 
                 const formData = new FormData(form);

@@ -130,21 +130,7 @@ class CheckoutController extends Controller
             return $tx;
         });
 
-        // Check if TUNAI
-        if ($request->is_cash === 'true') {
-            // For TUNAI we skip Midtrans, clear cart, and redirect to order status.
-            // Cashier will see this bill as "open" and will handle payment manually.
-            $this->cartService->clearCart();
-            
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'status' => 'success',
-                    'redirect_url' => route('public.order-status', $transaction)
-                ]);
-            }
-            return redirect()->route('public.order-status', $transaction);
-        }
-
+        // Public menu = Midtrans only (no cash) to prevent false orders
         // Request Midtrans Snap Token
         $midtransParams = [
             'transaction_details' => [
@@ -232,7 +218,7 @@ class CheckoutController extends Controller
             }
         }
 
-        $transaction->refresh()->load(['details.product', 'details.variant', 'table']);
+        $transaction->refresh()->load(['details.product', 'details.variant', 'table', 'booking']);
 
         return view('public.order-status', compact('transaction'));
     }

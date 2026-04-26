@@ -31,14 +31,14 @@ class MidtransWebhookController extends Controller
 
         $transactionInfo = $notif->transaction_status;
         $type = $notif->payment_type;
-        $orderId = $notif->order_id; // e.g., QR-123-timestamp
+        $orderId = $notif->order_id; // e.g., QR-123-timestamp or POS-123-timestamp
         $fraud = $notif->fraud_status;
 
         // Extract internal transaction ID from Midtrans Order ID
-        // Format was 'QR-' . $transaction->id . '-' . time()
+        // Format: 'QR-' . $id . '-' . time() or 'POS-' . $id . '-' . time()
         $parts = explode('-', $orderId);
-        if (count($parts) < 2 || $parts[0] !== 'QR') {
-            return response()->json(['message' => 'Ignoring non-QR order'], 200);
+        if (count($parts) < 2 || !in_array($parts[0], ['QR', 'POS'])) {
+            return response()->json(['message' => 'Ignoring unrecognized order prefix'], 200);
         }
         $transactionId = $parts[1];
 
