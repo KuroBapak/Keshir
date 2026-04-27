@@ -325,8 +325,8 @@
             $isBooking = $transaction->order_type === 'booking';
             $bookingStatus = $isBooking && $transaction->booking ? $transaction->booking->status : null;
             $bookingPendingApproval = $isBooking && $bookingStatus === 'pending';
-            $bookingConfirmed = $isBooking && $bookingStatus === 'confirmed';
-            $bookingCancelled = $isBooking && in_array($bookingStatus, ['cancelled']);
+            $bookingConfirmed = $isBooking && $bookingStatus === 'approved';
+            $bookingCancelled = $isBooking && $bookingStatus === 'rejected';
         @endphp
         
         <div class="status-card {{ $transaction->payment_status === 'paid' ? 'paid' : ($transaction->payment_status === 'void' ? 'void' : 'pending') }}">
@@ -412,10 +412,104 @@
                 <h2 class="status-title">Pesanan Dibatalkan</h2>
                 <p class="status-desc">Struk ini sudah kadaluarsa atau telah dibatalkan.</p>
             @else
-                <div class="status-icon pending pulse">⏳</div>
-                <div class="badge badge-pending">Menunggu Pembayaran</div>
-                <h2 class="status-title">Processing...</h2>
-                <p class="status-desc">Pembayaran via Midtrans sedang diproses. Halaman ini akan refresh otomatis.</p>
+                @if($bookingPendingApproval)
+                    <div class="status-icon pending pulse">📅</div>
+                    <div class="badge badge-pending">Reservasi Terkirim</div>
+                    <h2 class="status-title">Menunggu Konfirmasi Kasir</h2>
+                    <p class="status-desc">Reservasi Anda untuk tanggal <strong>{{ $transaction->booking->booking_time->translatedFormat('d M Y, H:i') }}</strong> sudah terkirim. Kasir akan mengonfirmasi reservasi Anda. Setelah dikonfirmasi, Anda bisa melakukan pembayaran. Halaman ini akan update otomatis.</p>
+                    <div class="progress-steps">
+                        <div class="progress-step">
+                            <div class="progress-dot active">⏳</div>
+                            <span class="progress-label active">Reservasi</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot">2</div>
+                            <span class="progress-label">Konfirmasi</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot">3</div>
+                            <span class="progress-label">Bayar</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot">4</div>
+                            <span class="progress-label">Selesai</span>
+                        </div>
+                    </div>
+                @elseif($bookingCancelled)
+                    <div class="status-icon void">❌</div>
+                    <div class="badge badge-void">Reservasi Ditolak</div>
+                    <h2 class="status-title">Reservasi Dibatalkan</h2>
+                    <p class="status-desc">Maaf, reservasi Anda tidak dapat dikonfirmasi oleh kasir. Silakan hubungi kami untuk informasi lebih lanjut.</p>
+                @elseif($bookingConfirmed)
+                    <div class="status-icon paid">🎉</div>
+                    <div class="badge badge-paid">✅ Reservasi Dikonfirmasi</div>
+                    <h2 class="status-title">Silakan Pilih Metode Pembayaran</h2>
+                    <p class="status-desc">Reservasi Anda untuk <strong>{{ $transaction->booking->booking_time->translatedFormat('d M Y, H:i') }}</strong> sudah dikonfirmasi kasir. Silakan pilih cara pembayaran di bawah.</p>
+                    
+                    <div style="display:flex; gap:0.75rem; margin-top:1.25rem; justify-content:center; flex-wrap:wrap;">
+                        <form action="{{ route('public.booking-pay', $transaction) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="payment_method" value="tunai">
+                            <button type="submit" class="btn btn-primary" style="padding:0.85rem 1.5rem; font-size:0.95rem;">
+                                💰 Bayar Tunai di Kasir
+                            </button>
+                        </form>
+                        <form action="{{ route('public.booking-pay', $transaction) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="payment_method" value="digital">
+                            <button type="submit" class="btn btn-primary" style="padding:0.85rem 1.5rem; font-size:0.95rem; background:linear-gradient(135deg, #10b981, #059669);">
+                                💳 Bayar Digital (Midtrans)
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="progress-steps">
+                        <div class="progress-step">
+                            <div class="progress-dot done">✓</div>
+                            <span class="progress-label done">Reservasi</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot done">✓</div>
+                            <span class="progress-label done">Konfirmasi</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot active">⏳</div>
+                            <span class="progress-label active">Bayar</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot">4</div>
+                            <span class="progress-label">Selesai</span>
+                        </div>
+                    </div>
+                @elseif($transaction->payment_method === 'cash')
+                    <div class="status-icon pending pulse">💰</div>
+                    <div class="badge badge-pending">Menunggu Pembayaran</div>
+                    <h2 class="status-title">Silakan Bayar di Kasir</h2>
+                    <p class="status-desc">Pesanan Anda sudah tercatat. Silakan menuju kasir untuk melakukan pembayaran tunai sebesar <strong>Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</strong>. Halaman ini akan update otomatis setelah kasir mengonfirmasi.</p>
+                    <div class="progress-steps">
+                        <div class="progress-step">
+                            <div class="progress-dot active">⏳</div>
+                            <span class="progress-label active">Bayar</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot">2</div>
+                            <span class="progress-label">Antre</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot">3</div>
+                            <span class="progress-label">Dimasak</span>
+                        </div>
+                        <div class="progress-step">
+                            <div class="progress-dot">4</div>
+                            <span class="progress-label">Selesai</span>
+                        </div>
+                    </div>
+                @else
+                    <div class="status-icon pending pulse">⏳</div>
+                    <div class="badge badge-pending">Menunggu Pembayaran</div>
+                    <h2 class="status-title">Processing...</h2>
+                    <p class="status-desc">Pembayaran via Midtrans sedang diproses. Halaman ini akan refresh otomatis.</p>
+                @endif
             @endif
         </div>
 

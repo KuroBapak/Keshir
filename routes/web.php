@@ -31,6 +31,7 @@ Route::post('/cart/remove', [\App\Http\Controllers\PublicMenuController::class, 
 Route::get('/checkout', [\App\Http\Controllers\PublicMenuController::class, 'checkout'])->name('public.checkout');
 Route::post('/checkout/process', [\App\Http\Controllers\CheckoutController::class, 'process'])->name('public.checkout.process');
 Route::get('/order/{transaction}', [\App\Http\Controllers\CheckoutController::class, 'orderStatus'])->name('public.order-status');
+Route::post('/order/{transaction}/pay', [\App\Http\Controllers\CheckoutController::class, 'bookingPay'])->name('public.booking-pay');
 
 /*
 |--------------------------------------------------------------------------
@@ -145,6 +146,9 @@ Route::middleware(['auth', 'attendance'])->group(function () {
         // Tables Management (Clear Dine-In Tables)
         Route::get('/tables', [PosController::class, 'tables'])->name('pos.tables');
         Route::patch('/tables/{table}/clear', [PosController::class, 'clearTable'])->name('pos.clearTable');
+
+        // Confirm QR Cash Payment
+        Route::post('/bill/{transaction}/confirm-cash', [PosController::class, 'confirmQrCash'])->name('pos.confirmQrCash');
     });
 
     // Kitchen (Kitchen Staff)

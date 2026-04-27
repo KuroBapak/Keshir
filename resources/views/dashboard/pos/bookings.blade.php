@@ -55,36 +55,29 @@
                 <td>
                     @if($booking->status === 'pending')
                         <span class="badge badge-warning">⏳ Menunggu Konfirmasi</span>
-                    @elseif($booking->status === 'confirmed')
+                    @elseif($booking->status === 'approved')
                         <span class="badge badge-primary">✅ Dikonfirmasi (Meja Disimpan)</span>
-                    @elseif($booking->status === 'completed')
-                        <span class="badge badge-success">🍽️ Selesai</span>
                     @else
-                        <span class="badge badge-danger">❌ Dibatalkan</span>
+                        <span class="badge badge-danger">❌ Ditolak</span>
                     @endif
                 </td>
                 <td style="text-align:right;">
                     @if($booking->status === 'pending')
                         <form action="{{ route('pos.updateBookingStatus', $booking) }}" method="POST" style="display:inline-block;margin-bottom:0.3rem;">
                             @csrf @method('PATCH')
-                            <input type="hidden" name="status" value="confirmed">
+                            <input type="hidden" name="status" value="approved">
                             <button type="submit" class="btn btn-sm" style="background:var(--primary);color:#fff;">Terima</button>
                         </form>
                         <form action="{{ route('pos.updateBookingStatus', $booking) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Tolak booking ini? Meja akan dilepas.')">
                             @csrf @method('PATCH')
-                            <input type="hidden" name="status" value="cancelled">
+                            <input type="hidden" name="status" value="rejected">
                             <button type="submit" class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);">Tolak</button>
                         </form>
-                    @elseif($booking->status === 'confirmed')
-                        <form action="{{ route('pos.updateBookingStatus', $booking) }}" method="POST" style="display:inline-block;margin-bottom:0.3rem;">
+                    @elseif($booking->status === 'approved')
+                        <form action="{{ route('pos.updateBookingStatus', $booking) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Batalkan booking ini? Meja akan dilepas.')">
                             @csrf @method('PATCH')
-                            <input type="hidden" name="status" value="completed">
-                            <button type="submit" class="btn btn-sm" style="background:var(--success);color:#fff;">Selesai (Pelanggan Pulang)</button>
-                        </form>
-                        <form action="{{ route('pos.updateBookingStatus', $booking) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Batalkan booking ini? Uang mungkin perlu direfund bila sudah lunas.')">
-                            @csrf @method('PATCH')
-                            <input type="hidden" name="status" value="cancelled">
-                            <button type="submit" class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);">Batal No-show</button>
+                            <input type="hidden" name="status" value="rejected">
+                            <button type="submit" class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);">Batalkan</button>
                         </form>
                     @endif
                 </td>

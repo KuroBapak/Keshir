@@ -658,8 +658,10 @@
             @if(in_array(Auth::user()->role->name, ['owner', 'manager']))
                 <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm" data-i18n="nav.dashboard">📊 Dashboard</a>
             @else
-                <a href="{{ route('cash-drawer.index') }}" class="btn btn-ghost btn-sm" data-i18n="nav.cash_drawer">💰 Kas Laci</a>
+                <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm">📊 Dashboard</a>
             @endif
+            <a href="{{ route('pos.bookings') }}" class="btn btn-ghost btn-sm">📅 Reservasi</a>
+            <a href="{{ route('cash-drawer.index') }}" class="btn btn-ghost btn-sm" data-i18n="nav.cash_drawer">💰 Kas Laci</a>
             <a href="{{ route('pos.tables') }}" class="btn btn-ghost btn-sm" data-i18n="nav.table_status">🪑 Status Meja</a>
             <form action="{{ route('logout') }}" method="POST" style="display:inline;">
                 @csrf
@@ -766,9 +768,15 @@
                                         @elseif($bill->payment_status === 'refunded')
                                             <span class="badge badge-danger">↩️ Refunded</span>
                                         @endif
-                                        <span class="badge badge-{{ $bill->order_type === 'dine_in' ? 'primary' : 'info' }}">
-                                            {{ $bill->order_type === 'dine_in' ? '🍽️ Dine In' : '🛍️ Takeaway' }}
+                                        <span class="badge badge-{{ $bill->order_type === 'dine_in' ? 'primary' : ($bill->order_type === 'booking' ? 'warning' : 'info') }}">
+                                            @if($bill->order_type === 'dine_in') 🍽️ Dine In
+                                            @elseif($bill->order_type === 'booking') 📅 Booking
+                                            @else 🛍️ Takeaway
+                                            @endif
                                         </span>
+                                        @if($bill->source === 'qr')
+                                            <span class="badge badge-warning">📱 QR Menu</span>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="meta">
@@ -789,6 +797,17 @@
                                     <div style="margin-top: 0.5rem;">
                                         <span class="badge badge-success">✅ Pesanan Selesai</span>
                                     </div>
+                                @endif
+                                @if($bill->source === 'qr' && $bill->payment_status === 'open' && $bill->payment_method === 'cash')
+                                    <div style="margin-top: 0.5rem;">
+                                        <span class="badge badge-danger">💰 Menunggu Bayar Cash</span>
+                                    </div>
+                                    <form action="{{ route('pos.confirmQrCash', $bill) }}" method="POST" style="margin-top: 0.75rem;" onclick="event.stopPropagation();">
+                                        @csrf
+                                        <button type="submit" class="btn btn-success btn-sm" style="width:100%;" onclick="event.preventDefault(); if(confirm('Konfirmasi pembayaran tunai Rp {{ number_format($bill->grand_total, 0, ',', '.') }}?')) this.closest('form').submit();">
+                                            ✅ Konfirmasi Bayar Cash
+                                        </button>
+                                    </form>
                                 @endif
                                 <div class="amount" style="{{ in_array($bill->payment_status, ['void', 'refunded']) ? 'text-decoration:line-through;color:var(--muted);background:none;-webkit-text-fill-color:var(--muted);' : '' }}">Rp {{ number_format($bill->grand_total, 0, ',', '.') }}</div>
                         </div>

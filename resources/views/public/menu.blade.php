@@ -342,10 +342,19 @@
             overflow: hidden;
         }
 
+        .sidebar form#checkoutForm {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
         .sidebar-header {
             padding: 1.5rem;
             text-align: center;
             border-bottom: 1px dashed var(--border-color);
+            flex-shrink: 0;
         }
 
         .sidebar-header h2 {
@@ -366,6 +375,7 @@
             border-radius: 50px;
             padding: 0.25rem;
             margin: 1rem 1.5rem;
+            flex-shrink: 0;
         }
 
         .order-type-btn {
@@ -435,9 +445,13 @@
             margin-bottom: 0.5rem;
         }
 
-        .cart-items {
+        .sidebar-scrollable {
             flex: 1;
             overflow-y: auto;
+            min-height: 0;
+        }
+
+        .cart-items {
             padding: 0 1.5rem;
         }
 
@@ -520,6 +534,7 @@
             padding: 1.5rem;
             background: var(--white);
             border-top: 1px dashed var(--border-color);
+            flex-shrink: 0;
         }
 
         .summary-row {
@@ -1491,8 +1506,10 @@
                     <input type="hidden" id="order_type" name="order_type" value="dine_in">
                     <button type="button" class="order-type-btn active" id="btnDineIn" onclick="setOrderType('dine_in')">Dine In</button>
                     <button type="button" class="order-type-btn" id="btnTakeAway" onclick="setOrderType('takeaway')">Take Away</button>
+                    <button type="button" class="order-type-btn" id="btnBooking" onclick="setOrderType('booking')">Booking</button>
                 </div>
 
+                <div class="sidebar-scrollable">
                 <div class="customer-form">
                     <div class="form-group">
                         <label>Nama Pelanggan</label>
@@ -1511,8 +1528,16 @@
                     <div class="form-group-full">
                         <input type="tel" name="phone" id="phone" placeholder="No HP Pelanggan" required>
                     </div>
+                    <!-- Booking fields -->
+                    <div class="form-group-full" id="bookingTimeGroup" style="display:none;">
+                        <label style="display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.4rem;">📅 Waktu Kedatangan</label>
+                        <input type="datetime-local" name="booking_time" id="booking_time" style="width:100%;padding:0.6rem 0.75rem;border:1px solid var(--border-color);border-radius:50px;font-size:0.85rem;outline:none;background:var(--white);">
+                    </div>
+                    <div class="form-group-full" id="peopleCountGroup" style="display:none;">
+                        <label style="display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.4rem;">👥 Jumlah Orang</label>
+                        <input type="number" name="people_count" id="people_count" value="1" min="1" max="20" style="width:100%;padding:0.6rem 0.75rem;border:1px solid var(--border-color);border-radius:50px;font-size:0.85rem;outline:none;background:var(--white);">
+                    </div>
                     <!-- Hidden fields for process -->
-                    <input type="hidden" name="people_count" value="1">
                     <input type="hidden" name="payment_method" id="payment_method" value="">
                 </div>
 
@@ -1550,6 +1575,7 @@
                         Belum ada pesanan.<br>Pilih menu di sebelah kiri.
                     </div>
                     @endforelse
+                </div>
                 </div>
 
                 <div class="sidebar-footer">
@@ -1732,25 +1758,51 @@
             });
         }
 
-        // Toggle Dine In / Take Away
+        // Toggle Dine In / Take Away / Booking
         function setOrderType(type) {
             document.getElementById('order_type').value = type;
             const btnDineIn = document.getElementById('btnDineIn');
             const btnTakeAway = document.getElementById('btnTakeAway');
+            const btnBooking = document.getElementById('btnBooking');
             const mejaGroup = document.getElementById('mejaGroup');
             const tableId = document.getElementById('table_id');
+            const bookingTimeGroup = document.getElementById('bookingTimeGroup');
+            const bookingTime = document.getElementById('booking_time');
+            const peopleCountGroup = document.getElementById('peopleCountGroup');
+            
+            // Reset all buttons
+            btnDineIn.classList.remove('active');
+            btnTakeAway.classList.remove('active');
+            btnBooking.classList.remove('active');
             
             if (type === 'dine_in') {
                 btnDineIn.classList.add('active');
-                btnTakeAway.classList.remove('active');
                 mejaGroup.style.display = 'block';
                 tableId.required = true;
-            } else {
+                bookingTimeGroup.style.display = 'none';
+                peopleCountGroup.style.display = 'none';
+                bookingTime.required = false;
+            } else if (type === 'takeaway') {
                 btnTakeAway.classList.add('active');
-                btnDineIn.classList.remove('active');
                 mejaGroup.style.display = 'none';
                 tableId.required = false;
                 tableId.value = '';
+                bookingTimeGroup.style.display = 'none';
+                peopleCountGroup.style.display = 'none';
+                bookingTime.required = false;
+            } else if (type === 'booking') {
+                btnBooking.classList.add('active');
+                mejaGroup.style.display = 'block';
+                tableId.required = true;
+                bookingTimeGroup.style.display = 'block';
+                peopleCountGroup.style.display = 'block';
+                bookingTime.required = true;
+                // Set min booking time to now + 1 hour
+                const now = new Date();
+                now.setHours(now.getHours() + 1);
+                const minTime = now.toISOString().slice(0, 16);
+                bookingTime.min = minTime;
+                if (!bookingTime.value) bookingTime.value = minTime;
             }
         }
 
@@ -1886,11 +1938,23 @@
                 return;
             }
 
-            // Bug fix: Validate table is selected for dine_in
+            // Bug fix: Validate table is selected for dine_in and booking
             const orderType = document.getElementById('order_type').value;
             const tableId = document.getElementById('table_id').value;
-            if (orderType === 'dine_in' && !tableId) {
-                alert('Silakan pilih meja terlebih dahulu untuk Dine In.');
+            if ((orderType === 'dine_in' || orderType === 'booking') && !tableId) {
+                alert('Silakan pilih meja terlebih dahulu.');
+                return;
+            }
+            if (orderType === 'booking') {
+                const bookingTime = document.getElementById('booking_time').value;
+                if (!bookingTime) {
+                    alert('Silakan isi waktu kedatangan untuk booking.');
+                    return;
+                }
+                // Booking: skip payment modal, submit directly
+                if (confirm('Kirim reservasi booking? Kasir akan mengonfirmasi reservasi Anda terlebih dahulu sebelum pembayaran.')) {
+                    submitCheckout('booking');
+                }
                 return;
             }
 

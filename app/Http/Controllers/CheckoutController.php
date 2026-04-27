@@ -130,8 +130,49 @@ class CheckoutController extends Controller
             return $tx;
         });
 
-        // Public menu = Midtrans only (no cash) to prevent false orders
-        // Request Midtrans Snap Token
+        // BOOKING: skip payment, go to waiting for kasir confirmation
+        if ($request->order_type === 'booking') {
+            // Clear Cart
+            $this->cartService->clearCart();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'redirect_url' => route('public.order-status', $transaction)
+                ]);
+            }
+
+            return redirect()->route('public.order-status', $transaction);
+        }
+
+        // Handle Cash payment (tunai) — keep as open, kasir must confirm
+        if ($request->input('payment_method') === 'tunai' || $request->input('is_cash') === 'true') {
+            // Mark payment method as cash but keep status open (kasir must confirm)
+            $transaction->update(['payment_method' => 'cash']);
+
+            // Create pending payment record
+            Payment::create([
+                'transaction_id' => $transaction->id,
+                'method' => 'cash',
+                'status' => 'pending',
+                'amount_paid' => 0,
+            ]);
+
+            // Clear Cart
+            $this->cartService->clearCart();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'redirect_url' => route('public.order-status', $transaction)
+                ]);
+            }
+
+            return redirect()->route('public.order-status', $transaction);
+        }
+
+        // Digital payment — Request Midtrans Snap Token
+        // Public menu = Midtrans for digital payments
         $midtransParams = [
             'transaction_details' => [
                 'order_id' => 'QR-' . $transaction->id . '-' . time(),
@@ -141,7 +182,6 @@ class CheckoutController extends Controller
                 'first_name' => $request->customer_name,
                 'phone' => $request->phone,
             ],
-            // Item details could be added here for detailed Midtrans receipt
         ];
 
         try {
@@ -221,5 +261,67 @@ class CheckoutController extends Controller
         $transaction->refresh()->load(['details.product', 'details.variant', 'table', 'booking']);
 
         return view('public.order-status', compact('transaction'));
+    }
+
+    /**
+     * Process payment for an approved booking.
+     * Customer chooses payment method after kasir confirms the reservation.
+     */
+    public function bookingPay(Request $request, Transaction $transaction)
+    {
+        // Validate: must be a QR booking that's still open and approved
+        if ($transaction->source !== 'qr' || $transaction->payment_status !== 'open') {
+            return back()->with('error', 'Transaksi tidak valid.');
+        }
+
+        $booking = $transaction->booking;
+        if (!$booking || $booking->status !== 'approved') {
+            return back()->with('error', 'Reservasi belum dikonfirmasi kasir.');
+        }
+
+        $paymentMethod = $request->input('payment_method');
+
+        if ($paymentMethod === 'tunai') {
+            // Cash: mark payment method, kasir must confirm
+            $transaction->update(['payment_method' => 'cash']);
+
+            Payment::create([
+                'transaction_id' => $transaction->id,
+                'method' => 'cash',
+                'status' => 'pending',
+                'amount_paid' => 0,
+            ]);
+
+            return redirect()->route('public.order-status', $transaction);
+        }
+
+        // Digital: Generate Midtrans Snap Token
+        $midtransParams = [
+            'transaction_details' => [
+                'order_id' => 'BOOK-' . $transaction->id . '-' . time(),
+                'gross_amount' => (int) $transaction->grand_total,
+            ],
+            'customer_details' => [
+                'first_name' => $transaction->customer_name,
+                'phone' => $transaction->phone,
+            ],
+        ];
+
+        try {
+            $snapToken = \Midtrans\Snap::getSnapToken($midtransParams);
+
+            Payment::create([
+                'transaction_id' => $transaction->id,
+                'method' => 'digital',
+                'status' => 'pending',
+                'midtrans_reference' => $midtransParams['transaction_details']['order_id'],
+            ]);
+
+            return view('public.payment', compact('snapToken', 'transaction'));
+
+        } catch (\Exception $e) {
+            \Log::error('Midtrans Snap Error (Booking): ' . $e->getMessage());
+            return back()->with('error', 'Gagal memproses pembayaran digital. Error: ' . $e->getMessage());
+        }
     }
 }

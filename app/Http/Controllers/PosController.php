@@ -57,12 +57,22 @@ class PosController extends Controller
 
         // Show ALL bills for the current shift (open, paid, void, refunded)
         // They will stack up until the shift is closed.
+        // Also include QR-source orders (from /menu) so kasir can see public orders
         $openBills = Transaction::with(['details.product', 'details.variant', 'table'])
-            ->where('cashier_id', auth()->id())
-            ->when($activeShift, function ($query) use ($activeShift) {
-                return $query->where('created_at', '>=', $activeShift->opened_at);
-            }, function ($query) {
-                return $query->whereDate('created_at', now()->toDateString());
+            ->where(function ($query) use ($activeShift) {
+                // Bills created by this cashier
+                $query->where('cashier_id', auth()->id())
+                    ->when($activeShift, function ($q) use ($activeShift) {
+                        return $q->where('created_at', '>=', $activeShift->opened_at);
+                    }, function ($q) {
+                        return $q->whereDate('created_at', now()->toDateString());
+                    });
+            })
+            ->orWhere(function ($query) {
+                // QR/public orders from today (no cashier_id)
+                $query->where('source', 'qr')
+                    ->whereNull('cashier_id')
+                    ->whereDate('created_at', now()->toDateString());
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -315,7 +325,7 @@ class PosController extends Controller
     public function bookings()
     {
         $bookings = \App\Models\Booking::with(['transaction.table', 'transaction.details.product', 'transaction.details.variant', 'transaction.details.addons.addon'])
-            ->orderByRaw("FIELD(status, 'pending', 'confirmed', 'completed', 'cancelled')")
+            ->orderByRaw("CASE status WHEN 'pending' THEN 1 WHEN 'approved' THEN 2 WHEN 'rejected' THEN 3 ELSE 4 END")
             ->orderBy('booking_time', 'asc')
             ->get();
 
@@ -328,7 +338,7 @@ class PosController extends Controller
      */
     public function updateBookingStatus(Request $request, \App\Models\Booking $booking)
     {
-        $request->validate(['status' => 'required|in:pending,confirmed,completed,cancelled']);
+        $request->validate(['status' => 'required|in:pending,approved,rejected']);
         
         $oldStatus = $booking->status;
         $newStatus = $request->status;
@@ -338,16 +348,16 @@ class PosController extends Controller
         $booking->update(['status' => $newStatus]);
 
         if ($table) {
-            // If booking is confirmed or pending, table stays booked
-            if (in_array($newStatus, ['pending', 'confirmed'])) {
+            // If booking is approved or pending, table stays booked
+            if (in_array($newStatus, ['pending', 'approved'])) {
                 $table->update(['status' => 'booked']);
             } 
-            // If completed or cancelled, table is freed
-            else if (in_array($newStatus, ['completed', 'cancelled'])) {
+            // If rejected, table is freed
+            else if ($newStatus === 'rejected') {
                 $table->update(['status' => 'available']);
                 
-                // If cancelled and it was unpaid QR order or open POS order, void the bill
-                if ($newStatus === 'cancelled' && $transaction->payment_status === 'open') {
+                // If rejected and it was unpaid QR order, void the bill
+                if ($transaction->payment_status === 'open') {
                     $this->transactionService->voidBill($transaction);
                 }
             }
@@ -383,5 +393,63 @@ class PosController extends Controller
 
         $table->update(['status' => 'available']);
         return back()->with('success', "Meja {$table->table_number} berhasil dikosongkan.");
+    }
+
+    /**
+     * Confirm cash payment for a QR/public menu order.
+     * Kasir clicks this after receiving cash from customer.
+     */
+    public function confirmQrCash(Transaction $transaction)
+    {
+        if ($transaction->payment_status !== 'open' || $transaction->source !== 'qr') {
+            return back()->with('error', 'Transaksi ini tidak bisa dikonfirmasi.');
+        }
+
+        \DB::transaction(function () use ($transaction) {
+            // Mark transaction as paid
+            $transaction->update([
+                'payment_status' => 'paid',
+                'cashier_id' => auth()->id(),
+            ]);
+
+            // Update or create payment record
+            $payment = $transaction->payment;
+            if ($payment) {
+                $payment->update([
+                    'status' => 'paid',
+                    'amount_paid' => $transaction->grand_total,
+                ]);
+            } else {
+                \App\Models\Payment::create([
+                    'transaction_id' => $transaction->id,
+                    'method' => 'cash',
+                    'status' => 'paid',
+                    'amount_paid' => $transaction->grand_total,
+                ]);
+            }
+
+            // Deduct ingredients
+            $transaction->load('details.addons');
+            foreach ($transaction->details as $detail) {
+                if ($detail->status === 'pending') {
+                    $this->transactionService->deductIngredients($detail);
+                }
+            }
+
+            // Auto-log cash in to active cash drawer
+            $activeDrawer = \App\Models\CashDrawer::where('user_id', auth()->id())
+                ->where('status', 'open')
+                ->first();
+            if ($activeDrawer) {
+                $activeDrawer->logs()->create([
+                    'type' => 'in',
+                    'amount' => $transaction->grand_total,
+                    'description' => 'Cash QR Menu #' . $transaction->id,
+                    'transaction_id' => $transaction->id,
+                ]);
+            }
+        });
+
+        return back()->with('success', 'Pembayaran cash untuk pesanan #' . $transaction->id . ' berhasil dikonfirmasi!');
     }
 }
