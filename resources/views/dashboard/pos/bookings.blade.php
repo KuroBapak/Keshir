@@ -68,17 +68,25 @@
                             <input type="hidden" name="status" value="approved">
                             <button type="submit" class="btn btn-sm" style="background:var(--primary);color:#fff;">Terima</button>
                         </form>
+                        @if($tx->payment_status !== 'paid')
                         <form action="{{ route('pos.updateBookingStatus', $booking) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Tolak booking ini? Meja akan dilepas.')">
                             @csrf @method('PATCH')
                             <input type="hidden" name="status" value="rejected">
                             <button type="submit" class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);">Tolak</button>
                         </form>
+                        @else
+                        <span class="badge badge-info" style="font-size:0.7rem;">Sudah Dibayar</span>
+                        @endif
                     @elseif($booking->status === 'approved')
+                        @if($tx->payment_status !== 'paid')
                         <form action="{{ route('pos.updateBookingStatus', $booking) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Batalkan booking ini? Meja akan dilepas.')">
                             @csrf @method('PATCH')
                             <input type="hidden" name="status" value="rejected">
                             <button type="submit" class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);">Batalkan</button>
                         </form>
+                        @else
+                        <span class="badge badge-success" style="font-size:0.7rem;">✅ Lunas — Tidak bisa dibatalkan</span>
+                        @endif
                     @endif
                 </td>
             </tr>

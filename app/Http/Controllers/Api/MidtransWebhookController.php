@@ -91,6 +91,10 @@ class MidtransWebhookController extends Controller
         foreach ($transaction->details as $detail) {
             $this->transactionService->deductIngredients($detail);
         }
+
+        // NOTE: Digital payments are NOT logged to cash drawer
+        // because no physical cash enters the register.
+        // Cash drawer only tracks physical cash in/out.
     }
 
     private function processFailure(Transaction $transaction)

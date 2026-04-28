@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CashDrawer;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Table;
+use App\Models\Transaction;
 use App\Services\CartService;
 use Illuminate\Http\Request;
 
@@ -18,10 +20,20 @@ class PublicMenuController extends Controller
     }
 
     /**
+     * Check if the shop is open (any cashier has an active shift).
+     */
+    private function isShopOpen(): bool
+    {
+        return CashDrawer::where('status', 'open')->exists();
+    }
+
+    /**
      * Show public menu catalog.
      */
     public function index()
     {
+        $isOpen = $this->isShopOpen();
+
         $categories = Category::has('products')->get();
         $products = Product::with(['variants', 'addons'])
             ->where('is_active', true)
@@ -41,8 +53,12 @@ class PublicMenuController extends Controller
         $taxAmount = ($cartSummary['subtotal'] * $taxRate) / 100;
         $serviceAmount = ($cartSummary['subtotal'] * $serviceRate) / 100;
         $grandTotal = $cartSummary['subtotal'] + $taxAmount + $serviceAmount;
+
+        // Session order history count for badge
+        $myOrderIds = session('my_orders', []);
+        $myOrderCount = count($myOrderIds);
         
-        return view('public.menu', compact('categories', 'products', 'cart', 'cartSummary', 'tables', 'taxRate', 'taxAmount', 'serviceRate', 'serviceAmount', 'grandTotal'));
+        return view('public.menu', compact('categories', 'products', 'cart', 'cartSummary', 'tables', 'taxRate', 'taxAmount', 'serviceRate', 'serviceAmount', 'grandTotal', 'isOpen', 'myOrderCount'));
     }
 
     /**
@@ -135,7 +151,28 @@ class PublicMenuController extends Controller
             return redirect()->route('public.menu')->with('error', 'Keranjang belanja kosong.');
         }
 
+        // Check if shop is open (allow booking even if closed)
+        $isOpen = $this->isShopOpen();
+
         $tables = Table::where('status', 'available')->get();
-        return view('public.checkout', compact('tables'));
+        return view('public.checkout', compact('tables', 'isOpen'));
+    }
+
+    /**
+     * Show session-based order history.
+     */
+    public function orderHistory()
+    {
+        $orderIds = session('my_orders', []);
+        $orders = collect();
+
+        if (!empty($orderIds)) {
+            $orders = Transaction::with(['details.product', 'details.variant', 'table', 'payment', 'booking'])
+                ->whereIn('id', $orderIds)
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+
+        return view('public.order-history', compact('orders'));
     }
 }

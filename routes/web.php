@@ -32,6 +32,7 @@ Route::get('/checkout', [\App\Http\Controllers\PublicMenuController::class, 'che
 Route::post('/checkout/process', [\App\Http\Controllers\CheckoutController::class, 'process'])->name('public.checkout.process');
 Route::get('/order/{transaction}', [\App\Http\Controllers\CheckoutController::class, 'orderStatus'])->name('public.order-status');
 Route::post('/order/{transaction}/pay', [\App\Http\Controllers\CheckoutController::class, 'bookingPay'])->name('public.booking-pay');
+Route::get('/my-orders', [\App\Http\Controllers\PublicMenuController::class, 'orderHistory'])->name('public.order-history');
 
 /*
 |--------------------------------------------------------------------------

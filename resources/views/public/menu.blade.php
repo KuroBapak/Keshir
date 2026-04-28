@@ -1416,10 +1416,43 @@
             <div class="date-time" id="datetime">Memuat waktu...</div>
         </div>
         <div class="header-right">
-            <button class="icon-btn">🔔</button>
-            <button class="icon-btn">👤</button>
+            <a href="{{ route('public.order-history') }}" class="icon-btn" title="Pesanan Saya" style="position:relative;text-decoration:none;">
+                📋
+                @if($myOrderCount > 0)
+                <span style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:0.6rem;font-weight:800;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;">{{ $myOrderCount }}</span>
+                @endif
+            </a>
         </div>
     </header>
+
+    {{-- ===== "We're Not Open Yet" overlay ===== --}}
+    @if(!$isOpen)
+    <div id="notOpenOverlay" style="
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        background: rgba(0,0,0,0.75);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    ">
+        <div style="
+            background: #fff;
+            border-radius: 20px;
+            padding: 3rem 2.5rem;
+            text-align: center;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        ">
+            <div style="font-size:4rem;margin-bottom:1rem;">🕐</div>
+            <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:0.75rem;color:#1f2937;">We're Not Open Yet</h2>
+            <p style="color:#6b7280;font-size:0.95rem;line-height:1.6;margin-bottom:1.5rem;">Maaf, kami belum buka saat ini. Kasir belum membuka shift. Silakan coba lagi nanti atau hubungi kami untuk informasi lebih lanjut.</p>
+            <div style="padding:0.75rem 1.25rem;background:#fef3c7;border-radius:0.75rem;color:#92400e;font-size:0.85rem;font-weight:600;">⏰ Halaman ini akan otomatis refresh setiap 30 detik</div>
+        </div>
+    </div>
+    <script>setTimeout(() => location.reload(), 30000);</script>
+    @endif
 
     <div class="main-container">
         <!-- Left Area (Menu) -->

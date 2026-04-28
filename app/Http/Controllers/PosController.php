@@ -58,7 +58,8 @@ class PosController extends Controller
         // Show ALL bills for the current shift (open, paid, void, refunded)
         // They will stack up until the shift is closed.
         // Also include QR-source orders (from /menu) so kasir can see public orders
-        $openBills = Transaction::with(['details.product', 'details.variant', 'table'])
+        // BUT exclude future-dated bookings (they go in separate section)
+        $openBills = Transaction::with(['details.product', 'details.variant', 'table', 'booking'])
             ->where(function ($query) use ($activeShift) {
                 // Bills created by this cashier
                 $query->where('cashier_id', auth()->id())
@@ -69,11 +70,28 @@ class PosController extends Controller
                     });
             })
             ->orWhere(function ($query) {
-                // QR/public orders from today (no cashier_id)
+                // QR/public orders from today (no cashier_id) — exclude future bookings
                 $query->where('source', 'qr')
                     ->whereNull('cashier_id')
-                    ->whereDate('created_at', now()->toDateString());
+                    ->whereDate('created_at', now()->toDateString())
+                    ->where(function ($q) {
+                        // Exclude future-dated bookings (they go in separate section)
+                        $q->where('order_type', '!=', 'booking')
+                            ->orWhereHas('booking', function ($bq) {
+                                $bq->whereDate('booking_time', '<=', now()->toDateString());
+                            });
+                    });
             })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Upcoming bookings — always visible regardless of shift
+        $upcomingBookings = Transaction::with(['details.product', 'details.variant', 'table', 'booking', 'payment'])
+            ->where('order_type', 'booking')
+            ->whereHas('booking', function ($q) {
+                $q->whereIn('status', ['pending', 'approved']);
+            })
+            ->where('payment_status', '!=', 'void')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -83,7 +101,7 @@ class PosController extends Controller
             ->where('status', 'open')
             ->exists();
 
-        return view('pos.index', compact('categories', 'products', 'tables', 'discounts', 'openBills', 'hasActiveShift'));
+        return view('pos.index', compact('categories', 'products', 'tables', 'discounts', 'openBills', 'hasActiveShift', 'upcomingBookings'));
     }
 
     /**
@@ -284,18 +302,9 @@ class PosController extends Controller
         //     $transaction->table()->update(['status' => 'available']);
         // }
 
-        // Auto-log to cash drawer if applicable
-        $activeDrawer = CashDrawer::where('user_id', $transaction->cashier_id)
-            ->where('status', 'open')
-            ->first();
-        if ($activeDrawer) {
-            $activeDrawer->logs()->create([
-                'type' => 'in',
-                'amount' => $transaction->grand_total,
-                'description' => 'Digital Payment Bill #' . $transaction->id,
-                'transaction_id' => $transaction->id,
-            ]);
-        }
+        // Auto-log to cash drawer if applicable — ONLY for cash payments
+        // Digital payments do NOT add physical cash to the register
+        // So we do NOT log digital payments to the cash drawer
 
         return redirect()->route('pos.receipt', $transaction)->with('success', 'Pembayaran digital berhasil!');
     }
@@ -344,6 +353,11 @@ class PosController extends Controller
         $newStatus = $request->status;
         $transaction = $booking->transaction;
         $table = $transaction->table;
+
+        // Prevent rejecting a booking that has already been paid
+        if ($newStatus === 'rejected' && $transaction->payment_status === 'paid') {
+            return back()->with('error', 'Tidak dapat menolak booking yang sudah dibayar. Gunakan fitur refund jika diperlukan.');
+        }
 
         $booking->update(['status' => $newStatus]);
 

@@ -330,7 +330,21 @@
         @endphp
         
         <div class="status-card {{ $transaction->payment_status === 'paid' ? 'paid' : ($transaction->payment_status === 'void' ? 'void' : 'pending') }}">
-            @if($transaction->payment_status === 'paid')
+            {{-- ============ VOID / CANCELLED ============ --}}
+            @if($transaction->payment_status === 'void')
+                <div class="status-icon void">❌</div>
+                @if($bookingCancelled)
+                    <div class="badge badge-void">Reservasi Ditolak</div>
+                    <h2 class="status-title">Reservasi Dibatalkan</h2>
+                    <p class="status-desc">Maaf, reservasi Anda tidak dapat dikonfirmasi oleh kasir. Silakan hubungi kami untuk informasi lebih lanjut.</p>
+                @else
+                    <div class="badge badge-void">Dibatalkan</div>
+                    <h2 class="status-title">Pesanan Dibatalkan</h2>
+                    <p class="status-desc">Struk ini sudah kadaluarsa atau telah dibatalkan.</p>
+                @endif
+
+            {{-- ============ PAID ============ --}}
+            @elseif($transaction->payment_status === 'paid')
                 {{-- BOOKING: Waiting for cashier approval --}}
                 @if($bookingPendingApproval)
                     <div class="status-icon pending pulse">📅</div>
@@ -406,11 +420,8 @@
                         </div>
                     </div>
                 @endif
-            @elseif($transaction->payment_status === 'void')
-                <div class="status-icon void">❌</div>
-                <div class="badge badge-void">Dibatalkan</div>
-                <h2 class="status-title">Pesanan Dibatalkan</h2>
-                <p class="status-desc">Struk ini sudah kadaluarsa atau telah dibatalkan.</p>
+
+            {{-- ============ OPEN / PENDING ============ --}}
             @else
                 @if($bookingPendingApproval)
                     <div class="status-icon pending pulse">📅</div>
@@ -486,6 +497,11 @@
                     <div class="badge badge-pending">Menunggu Pembayaran</div>
                     <h2 class="status-title">Silakan Bayar di Kasir</h2>
                     <p class="status-desc">Pesanan Anda sudah tercatat. Silakan menuju kasir untuk melakukan pembayaran tunai sebesar <strong>Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</strong>. Halaman ini akan update otomatis setelah kasir mengonfirmasi.</p>
+                    @if(session('cash_booking_submitted'))
+                        <div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:0.75rem;padding:0.85rem 1rem;margin-top:1rem;font-size:0.85rem;color:#065f46;text-align:left;">
+                            ✅ <strong>Pembayaran tunai sudah terdaftar!</strong> Silakan menuju kasir untuk membayar. Halaman ini akan otomatis update setelah kasir mengonfirmasi pembayaran Anda.
+                        </div>
+                    @endif
                     <div class="progress-steps">
                         <div class="progress-step">
                             <div class="progress-dot active">⏳</div>

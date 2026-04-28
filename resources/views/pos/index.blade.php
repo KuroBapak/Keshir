@@ -657,8 +657,6 @@
             </div>
             @if(in_array(Auth::user()->role->name, ['owner', 'manager']))
                 <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm" data-i18n="nav.dashboard">📊 Dashboard</a>
-            @else
-                <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm">📊 Dashboard</a>
             @endif
             <a href="{{ route('pos.bookings') }}" class="btn btn-ghost btn-sm">📅 Reservasi</a>
             <a href="{{ route('cash-drawer.index') }}" class="btn btn-ghost btn-sm" data-i18n="nav.cash_drawer">💰 Kas Laci</a>
@@ -823,6 +821,89 @@
                 </div>
             </div>
             @endif
+
+            {{-- ============================================= --}}
+            {{-- UPCOMING BOOKINGS — Always visible --}}
+            {{-- ============================================= --}}
+            <div class="section-title" style="margin-top:1.5rem;">
+                <span class="icon">📅</span>
+                <span>Reservasi Mendatang</span> ({{ $upcomingBookings->count() }})
+            </div>
+
+            @if($upcomingBookings->count() > 0)
+            <div style="border:2px solid var(--warning);border-radius:1rem;overflow:hidden;margin-bottom:1.25rem;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+                    <thead>
+                        <tr style="background:linear-gradient(135deg,#fef3c7,#fde68a);">
+                            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:#92400e;letter-spacing:0.03em;">Waktu</th>
+                            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:#92400e;letter-spacing:0.03em;">Pemesan</th>
+                            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:#92400e;letter-spacing:0.03em;">Meja</th>
+                            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:#92400e;letter-spacing:0.03em;">Status</th>
+                            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:#92400e;letter-spacing:0.03em;">Pembayaran</th>
+                            <th style="padding:0.75rem 1rem;text-align:right;font-size:0.75rem;text-transform:uppercase;color:#92400e;letter-spacing:0.03em;">Total</th>
+                            <th style="padding:0.75rem 1rem;text-align:center;font-size:0.75rem;text-transform:uppercase;color:#92400e;letter-spacing:0.03em;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($upcomingBookings as $bk)
+                        @php $bkBooking = $bk->booking; @endphp
+                        <tr style="border-top:1px solid var(--border);background:{{ $bkBooking && $bkBooking->booking_time->isToday() ? '#fefce8' : '#fff' }};">
+                            <td style="padding:0.75rem 1rem;">
+                                <div style="font-weight:700;">{{ $bkBooking ? $bkBooking->booking_time->format('d M Y') : '-' }}</div>
+                                <div style="font-size:1rem;color:var(--primary);font-weight:800;">{{ $bkBooking ? $bkBooking->booking_time->format('H:i') : '-' }}</div>
+                                @if($bkBooking && $bkBooking->booking_time->isToday())
+                                    <span class="badge badge-danger" style="margin-top:0.25rem;font-size:0.65rem;">HARI INI</span>
+                                @elseif($bkBooking && $bkBooking->booking_time->isPast())
+                                    <span class="badge badge-warning" style="margin-top:0.25rem;font-size:0.65rem;">LEWAT</span>
+                                @endif
+                            </td>
+                            <td style="padding:0.75rem 1rem;">
+                                <div style="font-weight:600;">{{ $bk->customer_name }}</div>
+                                <div style="font-size:0.8rem;color:var(--muted);">📱 {{ $bk->phone }}</div>
+                            </td>
+                            <td style="padding:0.75rem 1rem;">
+                                <div style="font-weight:700;">{{ $bk->table ? 'Meja ' . $bk->table->table_number : '-' }}</div>
+                                <div style="font-size:0.8rem;color:var(--muted);">👥 {{ $bk->people_count }} org</div>
+                            </td>
+                            <td style="padding:0.75rem 1rem;">
+                                @if($bkBooking && $bkBooking->status === 'pending')
+                                    <span class="badge badge-warning">⏳ Menunggu</span>
+                                @elseif($bkBooking && $bkBooking->status === 'approved')
+                                    <span class="badge badge-success">✅ Dikonfirmasi</span>
+                                @endif
+                            </td>
+                            <td style="padding:0.75rem 1rem;">
+                                @if($bk->payment_status === 'paid')
+                                    <span class="badge badge-success">💰 Lunas</span>
+                                @elseif($bk->payment && $bk->payment->method === 'cash' && $bk->payment->status === 'pending')
+                                    <span class="badge badge-danger">💵 Tunai (Blm Bayar)</span>
+                                @else
+                                    <span class="badge badge-warning">⏳ Belum Lunas</span>
+                                @endif
+                            </td>
+                            <td style="padding:0.75rem 1rem;text-align:right;font-weight:700;">Rp {{ number_format($bk->grand_total, 0, ',', '.') }}</td>
+                            <td style="padding:0.75rem 1rem;text-align:center;">
+                                <a href="{{ route('pos.bill', $bk) }}" class="btn btn-sm" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;display:block;margin-bottom:0.25rem;">Buka Bill</a>
+                                @if($bk->payment_status === 'open' && $bk->payment_method === 'cash')
+                                <form action="{{ route('pos.confirmQrCash', $bk) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success btn-sm" style="width:100%;font-size:0.7rem;padding:0.2rem 0.5rem;" onclick="return confirm('Konfirmasi pembayaran tunai Rp {{ number_format($bk->grand_total, 0, ',', '.') }}?')">
+                                        ✅ Terima Cash
+                                    </button>
+                                </form>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @else
+            <div class="card" style="text-align:center;color:var(--muted);padding:1.5rem;">
+                Belum ada reservasi mendatang.
+            </div>
+            @endif
+
         </div>
 
         <!-- Right panel: Product Catalog -->

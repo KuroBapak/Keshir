@@ -49,6 +49,21 @@ class CheckoutController extends Controller
             return redirect()->route('public.menu')->with('error', 'Keranjang belanja kosong.');
         }
 
+        // Shift-gate: block non-booking orders if no shift is open
+        $orderType = $request->input('order_type');
+        if ($orderType !== 'booking') {
+            $hasOpenShift = \App\Models\CashDrawer::where('status', 'open')->exists();
+            if (!$hasOpenShift) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Maaf, kami belum buka. Silakan coba lagi nanti.'
+                    ], 422);
+                }
+                return redirect()->route('public.menu')->with('error', 'Maaf, kami belum buka. Silakan coba lagi nanti.');
+            }
+        }
+
         $request->validate([
             'order_type' => 'required|in:dine_in,takeaway,booking',
             'customer_name' => 'required|string|max:255',
@@ -135,6 +150,11 @@ class CheckoutController extends Controller
             // Clear Cart
             $this->cartService->clearCart();
 
+            // Track in session for order history
+            $myOrders = session('my_orders', []);
+            $myOrders[] = $transaction->id;
+            session(['my_orders' => $myOrders]);
+
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'status' => 'success',
@@ -160,6 +180,11 @@ class CheckoutController extends Controller
 
             // Clear Cart
             $this->cartService->clearCart();
+
+            // Track in session for order history
+            $myOrders = session('my_orders', []);
+            $myOrders[] = $transaction->id;
+            session(['my_orders' => $myOrders]);
 
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
@@ -197,6 +222,11 @@ class CheckoutController extends Controller
 
             // Clear Cart after successful checkout intent
             $this->cartService->clearCart();
+
+            // Track in session for order history
+            $myOrders = session('my_orders', []);
+            $myOrders[] = $transaction->id;
+            session(['my_orders' => $myOrders]);
 
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
@@ -247,6 +277,8 @@ class CheckoutController extends Controller
                         foreach ($transaction->details as $detail) {
                             $this->transactionService->deductIngredients($detail);
                         }
+                        // NOTE: Digital payments are NOT logged to cash drawer
+                        // because no physical cash enters the register
                     } elseif (in_array($transactionInfo, ['deny', 'expire', 'cancel'])) {
                         // Process Failure
                         $transaction->payment->update(['status' => 'failed']);
@@ -292,7 +324,13 @@ class CheckoutController extends Controller
                 'amount_paid' => 0,
             ]);
 
-            return redirect()->route('public.order-status', $transaction);
+            // Track in session for order history
+            $myOrders = session('my_orders', []);
+            $myOrders[] = $transaction->id;
+            session(['my_orders' => $myOrders]);
+
+            return redirect()->route('public.order-status', $transaction)
+                ->with('cash_booking_submitted', true);
         }
 
         // Digital: Generate Midtrans Snap Token
