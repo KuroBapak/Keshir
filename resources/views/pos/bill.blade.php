@@ -301,6 +301,8 @@
             <a href="{{ route('pos.index') }}" class="btn btn-ghost btn-sm">← Kembali</a>
             @if($transaction->payment_status === 'paid')
                 <span class="badge badge-success" style="font-size:0.85rem;padding:0.4rem 0.8rem;">✅ LUNAS</span>
+            @elseif($transaction->payment_status === 'void')
+                <span class="badge badge-danger" style="font-size:0.85rem;padding:0.4rem 0.8rem;">❌ VOID</span>
             @else
                 <form action="{{ route('pos.voidBill', $transaction) }}" method="POST" style="display:inline;" onsubmit="return confirm('YAKIN void bill ini? Semua item akan dibatalkan.')">
                     @csrf
@@ -335,6 +337,15 @@
                             @if($p->variants->count())<div class="variants">{{ $p->variants->count() }} varian tersedia</div>@endif
                         </div>
                     @endforeach
+                </div>
+            @elseif($transaction->payment_status === 'void')
+                {{-- VOID BILL: Show void status --}}
+                <div style="max-width:600px;margin:0 auto;">
+                    <div style="background:var(--danger-bg);border:2px solid #fca5a5;border-radius:1rem;padding:2rem;text-align:center;margin-bottom:1.5rem;">
+                        <div style="font-size:3rem;margin-bottom:0.5rem;">❌</div>
+                        <h2 style="font-size:1.25rem;font-weight:800;color:#991b1b;margin-bottom:0.25rem;">Pesanan Dibatalkan (Void)</h2>
+                        <p style="color:#b91c1c;font-size:0.9rem;">Transaksi ini telah dibatalkan.</p>
+                    </div>
                 </div>
             @else
                 {{-- PAID BILL: Show summary & actions --}}
