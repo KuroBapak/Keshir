@@ -61,25 +61,27 @@ class PosController extends Controller
         // BUT exclude future-dated bookings (they go in separate section)
         $openBills = Transaction::with(['details.product', 'details.variant', 'table', 'booking'])
             ->where(function ($query) use ($activeShift) {
-                // Bills created by this cashier
-                $query->where('cashier_id', auth()->id())
-                    ->when($activeShift, function ($q) use ($activeShift) {
-                        return $q->where('created_at', '>=', $activeShift->opened_at);
-                    }, function ($q) {
-                        return $q->whereDate('created_at', now()->toDateString());
-                    });
+                $query->where(function ($q) use ($activeShift) {
+                    // Bills created by this cashier
+                    $q->where('cashier_id', auth()->id())
+                        ->when($activeShift, function ($q2) use ($activeShift) {
+                            return $q2->where('created_at', '>=', $activeShift->opened_at);
+                        }, function ($q2) {
+                            return $q2->whereDate('created_at', now()->toDateString());
+                        });
+                })
+                ->orWhere(function ($q) {
+                    // QR/public orders from today (no cashier_id)
+                    $q->where('source', 'qr')
+                        ->whereNull('cashier_id')
+                        ->whereDate('created_at', now()->toDateString());
+                });
             })
-            ->orWhere(function ($query) {
-                // QR/public orders from today (no cashier_id) — exclude future bookings
-                $query->where('source', 'qr')
-                    ->whereNull('cashier_id')
-                    ->whereDate('created_at', now()->toDateString())
-                    ->where(function ($q) {
-                        // Exclude future-dated bookings (they go in separate section)
-                        $q->where('order_type', '!=', 'booking')
-                            ->orWhereHas('booking', function ($bq) {
-                                $bq->whereDate('booking_time', '<=', now()->toDateString());
-                            });
+            // Exclude future-dated bookings globally for active bills
+            ->where(function ($query) {
+                $query->where('order_type', '!=', 'booking')
+                    ->orWhereHas('booking', function ($bq) {
+                        $bq->whereDate('booking_time', '<=', now()->toDateString());
                     });
             })
             ->orderBy('created_at', 'desc')
@@ -362,13 +364,17 @@ class PosController extends Controller
         $booking->update(['status' => $newStatus]);
 
         if ($table) {
-            // If booking is approved or pending, table stays booked
+            // If booking is approved or pending, table stays booked ONLY IF it's for today
             if (in_array($newStatus, ['pending', 'approved'])) {
-                $table->update(['status' => 'booked']);
+                if ($booking->booking_time->isToday()) {
+                    $table->update(['status' => 'booked']);
+                }
             } 
             // If rejected, table is freed
             else if ($newStatus === 'rejected') {
-                $table->update(['status' => 'available']);
+                if ($table->status === 'booked') {
+                    $table->update(['status' => 'available']);
+                }
                 
                 // If rejected and it was unpaid QR order, void the bill
                 if ($transaction->payment_status === 'open') {

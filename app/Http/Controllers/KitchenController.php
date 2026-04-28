@@ -35,7 +35,7 @@ class KitchenController extends Controller
                               // Booking QR orders → only show if cashier confirmed
                               ->orWhere(function ($q4) {
                                   $q4->where('order_type', 'booking')
-                                     ->whereHas('booking', fn($bq) => $bq->where('status', 'confirmed'));
+                                     ->whereHas('booking', fn($bq) => $bq->where('status', 'approved')->whereDate('booking_time', today()));
                               });
                        });
                 });
