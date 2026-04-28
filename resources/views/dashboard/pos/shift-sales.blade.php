@@ -45,7 +45,7 @@
                 <td>
                     @if($tx->order_type === 'dine_in')
                         <span class="badge badge-primary">Dine In (Meja {{ $tx->table->table_number ?? '-' }})</span>
-                    @elseif($tx->order_type === 'takeaway')
+                    @elseif($tx->order_type === 'take_away')
                         <span class="badge badge-warning">Takeaway</span>
                     @else
                         <span class="badge badge-success">Booking (Meja {{ $tx->table->table_number ?? '-' }})</span>
