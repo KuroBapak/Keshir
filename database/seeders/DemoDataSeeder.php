@@ -44,6 +44,7 @@ class DemoDataSeeder extends Seeder
                 'base_price' => 25000,
                 'category_id' => $catKopi->id,
                 'description' => 'Kopi susu dengan gula aren asli yang manis dan gurih.',
+                'photos' => ["products/2XgM0XuRWZE6GvaHCPIggGt61gykCNHIYyUX0dOT.jpg"],
                 'tags' => 'recommended,bestseller',
                 'ingredients' => [
                     [$ingKopi->id, 15], // 15 gram kopi
@@ -56,6 +57,7 @@ class DemoDataSeeder extends Seeder
                 'base_price' => 28000,
                 'category_id' => $catKopi->id,
                 'description' => 'Espresso dengan susu hangat dan sirup vanilla.',
+                'photos' => ["products/XpeHbXeE1AkJ47nFA03e8ntEIVrLnOaSAXgZyBj1.jpg"],
                 'tags' => 'hot',
                 'ingredients' => [
                     [$ingKopi->id, 18],
@@ -68,6 +70,7 @@ class DemoDataSeeder extends Seeder
                 'base_price' => 20000,
                 'category_id' => $catKopi->id,
                 'description' => 'Espresso dengan tambahan air panas/dingin.',
+                'photos' => ["products/LSa6GDhlqltNl7JfsMd4Xjf9MvEmuy4VLMFR63Pg.jpg"],
                 'tags' => 'strong,diet',
                 'ingredients' => [
                     [$ingKopi->id, 18],
@@ -79,6 +82,7 @@ class DemoDataSeeder extends Seeder
                 'base_price' => 30000,
                 'category_id' => $catNonKopi->id,
                 'description' => 'Matcha premium khas Jepang dipadukan dengan susu segar.',
+                'photos' => ["products/SUsFsdN1gJCEVARo27DtaLVoLl23sN3G2qs817oV.jpg"],
                 'tags' => 'recommended,sweet',
                 'ingredients' => [
                     [$ingMatcha->id, 20],
@@ -90,6 +94,7 @@ class DemoDataSeeder extends Seeder
                 'base_price' => 27000,
                 'category_id' => $catNonKopi->id,
                 'description' => 'Cokelat pekat yang disajikan dingin dengan susu.',
+                'photos' => ["products/RIhyi4RSV6t2hRDFWkT0RQuGLMcRIoczsan3atTP.jpg"],
                 'tags' => 'sweet',
                 'ingredients' => [
                     [$ingCokelat->id, 25],
@@ -102,6 +107,7 @@ class DemoDataSeeder extends Seeder
                 'base_price' => 35000,
                 'category_id' => $catMakanan->id,
                 'description' => 'Nasi goreng dengan bumbu rahasia dan suwiran ayam.',
+                'photos' => ["products/JnarubxjcBmyKBUK02X3pIq14WuRe4GkKs3yROvn.jpg"],
                 'tags' => 'spicy,bestseller',
                 'ingredients' => [
                     [$ingNasi->id, 200],
@@ -113,6 +119,7 @@ class DemoDataSeeder extends Seeder
                 'base_price' => 38000,
                 'category_id' => $catMakanan->id,
                 'description' => 'Ayam penyet dengan sambal khas Keshir yang super pedas.',
+                'photos' => ["products/alKHRJHnjJioJRtezbOkrk3zuDqYSUdz2vjcKn1a.jpg"],
                 'tags' => 'spicy',
                 'ingredients' => [
                     [$ingAyam->id, 150],
@@ -125,6 +132,7 @@ class DemoDataSeeder extends Seeder
                 'base_price' => 22000,
                 'category_id' => $catCemilan->id,
                 'description' => 'Kentang goreng gurih renyah.',
+                'photos' => ["products/gpZYT33iPPjY2g5eiTYoDXbN2pC2V0eeSIgD2HM9.jpg"],
                 'tags' => 'snack',
                 'ingredients' => [
                     [$ingKentang->id, 150],
@@ -135,6 +143,7 @@ class DemoDataSeeder extends Seeder
                 'base_price' => 25000,
                 'category_id' => $catCemilan->id,
                 'description' => 'Croissant renyah dengan rasa mentega yang gurih.',
+                'photos' => ["products/AzkJygyskRE9UiL6aqUyiWr8SldC1lK7tos96lfs.jpg"],
                 'tags' => 'snack,pastry',
                 'ingredients' => [
                     [$ingRoti->id, 1],
@@ -145,6 +154,7 @@ class DemoDataSeeder extends Seeder
                 'base_price' => 45000,
                 'category_id' => $catCemilan->id,
                 'description' => 'Campuran kentang goreng, sosis, dan nugget ayam.',
+                'photos' => ["products/KzeH5X9TxsWLysEN4M8zzZfc9ITvh637NcN7Wgv8.jpg"],
                 'tags' => 'snack,sharing',
                 'ingredients' => [
                     [$ingKentang->id, 100],
@@ -162,6 +172,7 @@ class DemoDataSeeder extends Seeder
                     'base_price' => $p['base_price'],
                     'category_id' => $p['category_id'],
                     'description' => $p['description'],
+                    'photos' => $p['photos'] ?? null,
                     'tags' => $p['tags'],
                 ]
             );
