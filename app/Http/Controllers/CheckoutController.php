@@ -107,7 +107,10 @@ class CheckoutController extends Controller
 
         // Create transaction using service
         // Since it's from QR, it's open and source is qr
-        $transaction = \DB::transaction(function () use ($request, $subtotal, $taxTotal, $serviceTotal, $grandTotal, $items) {
+        $activeDrawer = \App\Models\CashDrawer::where('status', 'open')->first();
+        $cashDrawerId = $activeDrawer ? $activeDrawer->id : null;
+
+        $transaction = \DB::transaction(function () use ($request, $subtotal, $taxTotal, $serviceTotal, $grandTotal, $items, $cashDrawerId) {
             $tx = Transaction::create([
                 'order_type' => $request->order_type === 'takeaway' ? 'take_away' : $request->order_type,
                 'source' => 'qr',
@@ -122,6 +125,7 @@ class CheckoutController extends Controller
                 'service_total' => $serviceTotal,
                 'grand_total' => $grandTotal,
                 'payment_status' => 'open', // Unpaid until Midtrans confirms
+                'cash_drawer_id' => $cashDrawerId,
             ]);
 
             foreach ($items as $item) {
