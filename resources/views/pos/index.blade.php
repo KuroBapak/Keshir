@@ -746,82 +746,6 @@
                 </form>
             </div>
 
-            <div class="section-title">
-                <span class="icon">📋</span>
-                <span data-i18n="pos.active_bills_title">Bills Aktif</span> ({{ $openBills->count() }})
-            </div>
-            
-            @if($openBills->count() > 0)
-            <div class="bills-grid">
-                @foreach($openBills as $bill)
-                    <a href="{{ route('pos.bill', $bill) }}" style="text-decoration:none;">
-                            <div class="bill-card {{ in_array($bill->payment_status, ['paid', 'refunded']) ? 'paid' : '' }} {{ $bill->payment_status === 'void' ? 'void' : '' }}" style="{{ in_array($bill->payment_status, ['void', 'refunded']) ? 'opacity:0.7;' : '' }}">
-                                <div class="bill-header">
-                                    <h4 style="{{ in_array($bill->payment_status, ['void', 'refunded']) ? 'text-decoration:line-through;' : '' }}">{{ $bill->customer_name ?: 'Bill #' . ($bill->bill_number ?? $bill->id) }}</h4>
-                                    <div class="badges">
-                                        @if($bill->payment_status === 'paid')
-                                            <span class="badge badge-success">✅ Paid</span>
-                                        @elseif($bill->payment_status === 'void')
-                                            <span class="badge badge-danger">🗑️ Void</span>
-                                        @elseif($bill->payment_status === 'refunded')
-                                            <span class="badge badge-danger">↩️ Refunded</span>
-                                        @endif
-                                        <span class="badge badge-{{ $bill->order_type === 'dine_in' ? 'primary' : ($bill->order_type === 'booking' ? 'warning' : 'info') }}">
-                                            @if($bill->order_type === 'dine_in') 🍽️ Dine In
-                                            @elseif($bill->order_type === 'booking') 📅 Booking
-                                            @else 🛍️ Takeaway
-                                            @endif
-                                        </span>
-                                        @if($bill->source === 'qr')
-                                            <span class="badge badge-warning">📱 QR Menu</span>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="meta">
-                                    <span>{{ $bill->table ? '🪑 ' . $bill->table->table_number : '🛍️ No Table' }}</span>
-                                    <span>📦 {{ $bill->details->count() }} item</span>
-                                    <span>⏰ {{ $bill->created_at->diffForHumans() }}</span>
-                                </div>
-                                @php
-                                    $isCooking = $bill->details->contains(function ($detail) {
-                                        return in_array($detail->status, ['pending', 'in_progress']);
-                                    });
-                                @endphp
-                                @if(in_array($bill->payment_status, ['open', 'paid']) && $isCooking && $bill->details->count() > 0)
-                                    <div style="margin-top: 0.5rem;">
-                                        <span class="badge badge-warning">🔥 Sedang Dimasak</span>
-                                    </div>
-                                @elseif($bill->payment_status === 'paid' && !$isCooking && $bill->details->count() > 0)
-                                    <div style="margin-top: 0.5rem;">
-                                        <span class="badge badge-success">✅ Pesanan Selesai</span>
-                                    </div>
-                                @endif
-                                @if($bill->source === 'qr' && $bill->payment_status === 'open' && $bill->payment_method === 'cash')
-                                    <div style="margin-top: 0.5rem;">
-                                        <span class="badge badge-danger">💰 Menunggu Bayar Cash</span>
-                                    </div>
-                                    <form action="{{ route('pos.confirmQrCash', $bill) }}" method="POST" style="margin-top: 0.75rem;" onclick="event.stopPropagation();">
-                                        @csrf
-                                        <button type="submit" class="btn btn-success btn-sm" style="width:100%;" onclick="event.preventDefault(); if(confirm('Konfirmasi pembayaran tunai Rp {{ number_format($bill->grand_total, 0, ',', '.') }}?')) this.closest('form').submit();">
-                                            ✅ Konfirmasi Bayar Cash
-                                        </button>
-                                    </form>
-                                @endif
-                                <div class="amount" style="{{ in_array($bill->payment_status, ['void', 'refunded']) ? 'text-decoration:line-through;color:var(--muted);background:none;-webkit-text-fill-color:var(--muted);' : '' }}">Rp {{ number_format($bill->grand_total, 0, ',', '.') }}</div>
-                        </div>
-                    </a>
-                @endforeach
-            </div>
-            @else
-            <div class="card">
-                <div class="empty-state">
-                    <div class="icon">📝</div>
-                    <h3 data-i18n="pos.no_bills">Belum Ada Open Bill</h3>
-                    <p data-i18n="pos.no_bills_desc">Buat bill baru menggunakan form di atas untuk memulai transaksi.</p>
-                </div>
-            </div>
-            @endif
-
             {{-- ============================================= --}}
             {{-- UPCOMING BOOKINGS — Always visible --}}
             {{-- ============================================= --}}
@@ -904,6 +828,84 @@
             </div>
             @endif
 
+
+            <div class="section-title">
+                <span class="icon">📋</span>
+                <span data-i18n="pos.active_bills_title">Bills Aktif</span> ({{ $openBills->count() }})
+            </div>
+            
+            @if($openBills->count() > 0)
+            <div class="bills-grid">
+                @foreach($openBills as $bill)
+                    <a href="{{ route('pos.bill', $bill) }}" style="text-decoration:none;">
+                            <div class="bill-card {{ in_array($bill->payment_status, ['paid', 'refunded']) ? 'paid' : '' }} {{ $bill->payment_status === 'void' ? 'void' : '' }}" style="{{ in_array($bill->payment_status, ['void', 'refunded']) ? 'opacity:0.7;' : '' }}">
+                                <div class="bill-header">
+                                    <h4 style="{{ in_array($bill->payment_status, ['void', 'refunded']) ? 'text-decoration:line-through;' : '' }}">{{ $bill->customer_name ?: 'Bill #' . ($bill->bill_number ?? $bill->id) }}</h4>
+                                    <div class="badges">
+                                        @if($bill->payment_status === 'paid')
+                                            <span class="badge badge-success">✅ Paid</span>
+                                        @elseif($bill->payment_status === 'void')
+                                            <span class="badge badge-danger">🗑️ Void</span>
+                                        @elseif($bill->payment_status === 'refunded')
+                                            <span class="badge badge-danger">↩️ Refunded</span>
+                                        @endif
+                                        <span class="badge badge-{{ $bill->order_type === 'dine_in' ? 'primary' : ($bill->order_type === 'booking' ? 'warning' : 'info') }}">
+                                            @if($bill->order_type === 'dine_in') 🍽️ Dine In
+                                            @elseif($bill->order_type === 'booking') 📅 Booking
+                                            @else 🛍️ Takeaway
+                                            @endif
+                                        </span>
+                                        @if($bill->source === 'qr')
+                                            <span class="badge badge-warning">📱 QR Menu</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="meta">
+                                    <span>{{ $bill->table ? '🪑 ' . $bill->table->table_number : '🛍️ No Table' }}</span>
+                                    <span>📦 {{ $bill->details->count() }} item</span>
+                                    <span>⏰ {{ $bill->created_at->diffForHumans() }}</span>
+                                </div>
+                                @php
+                                    $isCooking = $bill->details->contains(function ($detail) {
+                                        return in_array($detail->status, ['pending', 'in_progress']);
+                                    });
+                                @endphp
+                                @if(in_array($bill->payment_status, ['open', 'paid']) && $isCooking && $bill->details->count() > 0)
+                                    <div style="margin-top: 0.5rem;">
+                                        <span class="badge badge-warning">🔥 Sedang Dimasak</span>
+                                    </div>
+                                @elseif($bill->payment_status === 'paid' && !$isCooking && $bill->details->count() > 0)
+                                    <div style="margin-top: 0.5rem;">
+                                        <span class="badge badge-success">✅ Pesanan Selesai</span>
+                                    </div>
+                                @endif
+                                @if($bill->source === 'qr' && $bill->payment_status === 'open' && $bill->payment_method === 'cash')
+                                    <div style="margin-top: 0.5rem;">
+                                        <span class="badge badge-danger">💰 Menunggu Bayar Cash</span>
+                                    </div>
+                                    <form action="{{ route('pos.confirmQrCash', $bill) }}" method="POST" style="margin-top: 0.75rem;" onclick="event.stopPropagation();">
+                                        @csrf
+                                        <button type="submit" class="btn btn-success btn-sm" style="width:100%;" onclick="event.preventDefault(); if(confirm('Konfirmasi pembayaran tunai Rp {{ number_format($bill->grand_total, 0, ',', '.') }}?')) this.closest('form').submit();">
+                                            ✅ Konfirmasi Bayar Cash
+                                        </button>
+                                    </form>
+                                @endif
+                                <div class="amount" style="{{ in_array($bill->payment_status, ['void', 'refunded']) ? 'text-decoration:line-through;color:var(--muted);background:none;-webkit-text-fill-color:var(--muted);' : '' }}">Rp {{ number_format($bill->grand_total, 0, ',', '.') }}</div>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+            @else
+            <div class="card">
+                <div class="empty-state">
+                    <div class="icon">📝</div>
+                    <h3 data-i18n="pos.no_bills">Belum Ada Open Bill</h3>
+                    <p data-i18n="pos.no_bills_desc">Buat bill baru menggunakan form di atas untuk memulai transaksi.</p>
+                </div>
+            </div>
+            @endif
+
+            
         </div>
 
         <!-- Right panel: Product Catalog -->
