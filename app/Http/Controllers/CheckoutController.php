@@ -138,7 +138,7 @@ class CheckoutController extends Controller
                     'booking_time' => $request->booking_time,
                     'status' => 'pending',
                 ]);
-                if ($tx->table_id) {
+                if ($tx->table_id && \Carbon\Carbon::parse($request->booking_time)->isToday()) {
                     $tx->table->update(['status' => 'booked']);
                 }
             } else if ($request->order_type === 'dine_in' && $request->table_id) {

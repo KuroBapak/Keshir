@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="15">
     <title>Dapur — Keshir POS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -38,6 +37,7 @@
             color: var(--text); 
             min-height: 100vh;
             font-size: 14px;
+            overflow-x: hidden;
         }
         
         /* Modern Navigation - Light */
@@ -848,6 +848,39 @@
                 }
             });
         }
+        
+        // Soft refresh mechanism
+        setInterval(function() {
+            fetch(window.location.href, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                const newStatsBar = doc.querySelector('.stats-bar');
+                const newTicketGrid = doc.querySelector('.ticket-grid');
+                const newEmptyKitchen = doc.querySelector('.empty-kitchen');
+                
+                const currentStatsBar = document.querySelector('.stats-bar');
+                if (currentStatsBar && newStatsBar) {
+                    currentStatsBar.innerHTML = newStatsBar.innerHTML;
+                }
+                
+                const currentContainer = document.querySelector('.ticket-grid') || document.querySelector('.empty-kitchen');
+                if (currentContainer) {
+                    if (newTicketGrid) {
+                        currentContainer.outerHTML = newTicketGrid.outerHTML;
+                    } else if (newEmptyKitchen) {
+                        currentContainer.outerHTML = newEmptyKitchen.outerHTML;
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching new orders:', error));
+        }, 15000);
     });
     </script>
 </body>

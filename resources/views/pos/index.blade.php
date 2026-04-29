@@ -808,7 +808,7 @@
                             <td style="padding:0.75rem 1rem;text-align:right;font-weight:700;">Rp {{ number_format($bk->grand_total, 0, ',', '.') }}</td>
                             <td style="padding:0.75rem 1rem;text-align:center;">
                                 <a href="{{ route('pos.bill', $bk) }}" class="btn btn-sm" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;display:block;margin-bottom:0.25rem;">Buka Bill</a>
-                                @if($bk->payment_status === 'open' && $bk->payment_method === 'cash')
+                                @if($bk->payment_status === 'open' && $bkBooking && $bkBooking->status === 'approved')
                                 <form action="{{ route('pos.confirmQrCash', $bk) }}" method="POST">
                                     @csrf
                                     <button type="submit" class="btn btn-success btn-sm" style="width:100%;font-size:0.7rem;padding:0.2rem 0.5rem;" onclick="return confirm('Konfirmasi pembayaran tunai Rp {{ number_format($bk->grand_total, 0, ',', '.') }}?')">
@@ -879,7 +879,7 @@
                                         <span class="badge badge-success">✅ Pesanan Selesai</span>
                                     </div>
                                 @endif
-                                @if($bill->source === 'qr' && $bill->payment_status === 'open' && $bill->payment_method === 'cash')
+                                @if($bill->source === 'qr' && $bill->payment_status === 'open' && (!$bill->booking || $bill->booking->status === 'approved'))
                                     <div style="margin-top: 0.5rem;">
                                         <span class="badge badge-danger">💰 Menunggu Bayar Cash</span>
                                     </div>

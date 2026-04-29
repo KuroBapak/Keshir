@@ -429,6 +429,7 @@ class PosController extends Controller
             // Mark transaction as paid
             $transaction->update([
                 'payment_status' => 'paid',
+                'payment_method' => 'cash',
                 'cashier_id' => auth()->id(),
             ]);
 
@@ -436,6 +437,7 @@ class PosController extends Controller
             $payment = $transaction->payment;
             if ($payment) {
                 $payment->update([
+                    'method' => 'cash',
                     'status' => 'paid',
                     'amount_paid' => $transaction->grand_total,
                 ]);

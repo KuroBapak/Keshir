@@ -1746,6 +1746,33 @@
         setInterval(updateTime, 1000);
         updateTime();
 
+        // Restore and Save Form State
+        document.addEventListener('DOMContentLoaded', () => {
+            const fieldsToSave = ['customer_name', 'table_id', 'phone', 'booking_time', 'people_count', 'order_type'];
+            fieldsToSave.forEach(field => {
+                const element = document.getElementById(field);
+                if (element) {
+                    // Restore from session storage
+                    const savedValue = sessionStorage.getItem('keshir_cart_' + field);
+                    if (savedValue !== null) {
+                        element.value = savedValue;
+                        // Special handling for order_type restoration
+                        if (field === 'order_type') {
+                            setOrderType(savedValue);
+                        }
+                    }
+                    // Save on change
+                    element.addEventListener('input', () => {
+                        sessionStorage.setItem('keshir_cart_' + field, element.value);
+                    });
+                    element.addEventListener('change', () => {
+                        sessionStorage.setItem('keshir_cart_' + field, element.value);
+                    });
+                }
+            });
+        });
+
+
         // Search Handlers
         document.getElementById('searchInput').addEventListener('input', function(e) {
             let term = e.target.value.toLowerCase();
@@ -2034,6 +2061,7 @@
             .then(r => r.json())
             .then(res => {
                 if (paymentMethod === 'tunai' && res.redirect_url) {
+                     sessionStorage.clear();
                      window.location.href = res.redirect_url;
                      return;
                 }
@@ -2041,8 +2069,14 @@
                 if(res.status === 'success' && res.snap_token) {
                     // Midtrans Mode
                     snap.pay(res.snap_token, {
-                        onSuccess: function(result){ window.location.href = res.redirect_url; },
-                        onPending: function(result){ window.location.href = res.redirect_url; },
+                        onSuccess: function(result){ 
+                            sessionStorage.clear();
+                            window.location.href = res.redirect_url; 
+                        },
+                        onPending: function(result){ 
+                            sessionStorage.clear();
+                            window.location.href = res.redirect_url; 
+                        },
                         onError: function(result){ alert('Pembayaran gagal.'); window.location.reload(); },
                         onClose: function(){
                             btnMidtrans.innerText = "MIDTRANS";
@@ -2051,6 +2085,7 @@
                     });
                 } else if(res.status === 'success' && res.redirect_url) {
                     // Bypass mode if backend implemented it
+                    sessionStorage.clear();
                     window.location.href = res.redirect_url;
                 } else {
                     alert(res.message || 'Terjadi kesalahan.');
