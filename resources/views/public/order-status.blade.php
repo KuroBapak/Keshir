@@ -460,13 +460,6 @@
                     <div style="display:flex; gap:0.75rem; margin-top:1.25rem; justify-content:center; flex-wrap:wrap;">
                         <form action="{{ route('public.booking-pay', $transaction) }}" method="POST">
                             @csrf
-                            <input type="hidden" name="payment_method" value="tunai">
-                            <button type="submit" class="btn btn-primary" style="padding:0.85rem 1.5rem; font-size:0.95rem;">
-                                💰 Bayar Tunai di Kasir
-                            </button>
-                        </form>
-                        <form action="{{ route('public.booking-pay', $transaction) }}" method="POST">
-                            @csrf
                             <input type="hidden" name="payment_method" value="digital">
                             <button type="submit" class="btn btn-primary" style="padding:0.85rem 1.5rem; font-size:0.95rem; background:linear-gradient(135deg, #10b981, #059669);">
                                 💳 Bayar Digital (Midtrans)

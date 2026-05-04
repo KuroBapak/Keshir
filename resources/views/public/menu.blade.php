@@ -1471,7 +1471,7 @@
                     </div>
                     <div class="cat-text">
                         <div class="cat-name">KOPI</div>
-                        <div class="cat-items">{{ $products->filter(function($p) { return str_contains(strtolower($p->name), 'kopi') || str_contains(strtolower($p->name), 'latte') || str_contains(strtolower($p->name), 'americano') || str_contains(strtolower($p->name), 'espresso'); })->count() }} items</div>
+                        <div class="cat-items">{{ $products->filter(function($p) { $n = strtolower($p->name); return str_contains($n, 'kopi') || str_contains($n, 'coffee') || str_contains($n, 'latte') || str_contains($n, 'espresso') || str_contains($n, 'americano') || str_contains($n, 'cappuccino') || str_contains($n, 'mocha'); })->count() }} items</div>
                     </div>
                 </div>
 
@@ -1482,7 +1482,7 @@
                     </div>
                     <div class="cat-text">
                         <div class="cat-name">TEH</div>
-                        <div class="cat-items">{{ $products->filter(function($p) { return str_contains(strtolower($p->name), 'teh') || str_contains(strtolower($p->name), 'tea') || str_contains(strtolower($p->name), 'matcha'); })->count() }} items</div>
+                        <div class="cat-items">{{ $products->filter(function($p) { $n = strtolower($p->name); return str_contains($n, 'teh') || str_contains($n, 'tea') || str_contains($n, 'matcha') || str_contains($n, 'oolong') || str_contains($n, 'chamomile'); })->count() }} items</div>
                     </div>
                 </div>
 
@@ -1493,7 +1493,7 @@
                     </div>
                     <div class="cat-text">
                         <div class="cat-name">SNACK</div>
-                        <div class="cat-items">{{ $products->filter(function($p) { return str_contains(strtolower($p->name), 'snack') || str_contains(strtolower($p->name), 'kue') || str_contains(strtolower($p->name), 'roti'); })->count() }} items</div>
+                        <div class="cat-items">{{ $products->filter(function($p) { $n = strtolower($p->name); return str_contains($n, 'snack') || str_contains($n, 'kue') || str_contains($n, 'roti') || str_contains($n, 'fries') || str_contains($n, 'kentang') || str_contains($n, 'croissant') || str_contains($n, 'pastry') || str_contains($n, 'cake') || str_contains($n, 'tart'); })->count() }} items</div>
                     </div>
                 </div>
             </div>

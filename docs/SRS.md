@@ -53,15 +53,18 @@ This system consists of:
 - This rule applies to all roles except Owner.
 
 ### FR-03 Attendance System (Web vs IoT)
-- The system shall allow staff to check-in and check-out.
+- The system shall allow staff to check-in and check-out, and log the corresponding `status_in` (on_time, late) based on their assigned shift.
+- The system shall maintain an Attendance Dashboard providing period stats (average work hours, attendance rate, total alpha/absence).
+- Managers have the authority to reset a staff's check-out if made by mistake. Only the Owner can hard-delete attendance logs.
 - For the development phase, the system provides a temporary web route (`/absencetemp`) containing a dropdown of seeded users to perform manual check-in/out.
 - The web attendance is designed to be easily replaced by the future IoT MQTT device integration.
-- The system shall record timestamps for each attendance action and support configurable work schedules.
+
 ### FR-03B Cash Drawer & Shift Management
 - The system shall require the Cashier to input the **Starting Cash** (modal awal) when opening a shift.
 - The system shall track all cash transactions (Cash IN from sales, Cash OUT from refunds or petty cash).
 - The system shall provide a **Shift Sales Log** (Detil Penjualan Shift) showing all transactions made during the currently open shift.
 - The system shall require the Cashier to input the **Ending Cash** (total fisik uang) when closing the shift, and log any discrepancies.
+
 ### FR-04 POS Order Creation
 - The system shall allow cashier to create orders (dine-in/take-away) and assign a table/seat.
 - The system shall prevent selection of a table if its status is currently occupied or booked.
@@ -76,13 +79,13 @@ This system consists of:
 - **Cash Payment:** The system shall display a modal to input the received cash amount and automatically calculate the change.
 - **Digital Payment:** The system shall process the payment (e.g., via QRIS/Transfer).
 - Transactions can be marked as Paid, or left as Open Bill to be paid later.
-- If an Open Bill is canceled, the Cashier can **Void** it without restrictions, and the system shall automatically restock the ingredients.
-- If a **Paid Bill** is canceled (e.g., failed to serve), the system shall record a **Refund Log** (stating the amount, reason, and authorized user) and restock the ingredients.
 
-### FR-06 Transaction Storage
-- The system shall store transaction data and transaction details.
+### FR-06 Transaction Modification (Void & Refund)
+- **Void:** If an **Open Bill** is canceled (unpaid), the Cashier can **Void** it without restrictions, and the system shall automatically restock the ingredients.
+- **Refund:** If a **Paid Bill** is canceled (e.g., failed to serve), the system shall record a **Refund Log** (stating the amount, reason, and authorized user) and restock the ingredients.
 
-### FR-07 Receipt/Invoice Generation
+### FR-07 Transaction Storage & Invoicing
+- The system shall store transaction data, details, addons, and specific variants.
 - The system shall generate a digital receipt after successful checkout.
 - The system shall support printing/generating billing statements for Open Bills.
 
@@ -97,7 +100,7 @@ This system consists of:
 
 ### FR-09 Inventory Management (Ingredients)
 - The system shall support CRUD for ingredients.
-- The system shall support stock in/out logs.
+- The system shall support stock in/out logs via batches (`IngredientBatch`).
 - The system shall require an **Expiry Date** input during stock-in.
 
 ### FR-10 Expiry & Low Stock Alerts
@@ -108,55 +111,52 @@ This system consists of:
 - The system shall allow creating recipes linked to menu items.
 - Recipes shall define ingredient quantity per product.
 
-### FR-12 Automatic Recipe-Based Stock Deduction (FIFO & Voiding)
-- The system shall automatically deduct ingredient stock upon order creation or payment (configurable depending on workflow, default scenario: at order creation).
+### FR-12 Automatic Recipe-Based Stock Deduction (FIFO)
+- The system shall automatically deduct ingredient stock upon order creation or payment.
 - The system shall apply a **First-In, First-Out (FIFO)** method, prioritizing the deduction of stock batches with the closest Expiry Date.
-- If an order is **Voided or Canceled** (such as unpaid Midtrans timeouts), the deducted ingredients must be returned to inventory.
+- If an order is **Voided or Refunded**, the deducted ingredients must be accurately returned to inventory.
 
-### FR-13 Customer QR Ordering Module
+### FR-13 Public Menu Availability Rules
+- The public QR Menu page (`/menu`) shall strictly evaluate the current operational state.
+- **Shop is Closed:** The public menu is restricted ("We're Not Open Yet") if the Cashier has not opened a shift (Cash Drawer) **AND** no staff member is actively Checked-In (Attendance).
+
+### FR-14 Customer QR Ordering Module
 - Customers shall access menu via QR without login.
-- Customers shall browse menu, filter items, and add to cart.
+- Customers shall browse menu, filter items dynamically by categories and search strings, and add to cart.
+- The system shall allow Customers to select **Variants/Add-ons** (affecting price) and add **Notes** to their order.
+- The system shall calculate and display the Subtotal, Tax, Service Charge, and Grand Total to the customer.
 
-### FR-14 Unified Checkout (Dine Now / Booking) from QR
+### FR-15 Unified Checkout (Dine Now / Booking) from QR
 - Customer checkout shall provide options: Dine Now & Booking.
 - Both options shall request: customer name, phone number, table/seat, and number of people.
 - The Table selection dropdown shall only display available tables (hiding occupied/booked tables based on current POS/Booking data).
-- The system shall allow Customers to select **Variants/Add-ons** (affecting price) and add **Notes** to their order.
-- The system shall calculate and display the Subtotal, Tax, Service Charge, and Grand Total to the customer.
 - Booking shall additionally require booking time.
 
-### FR-15 Booking and Kitchen Dashboard Flow
-- **Kitchen Dashboard:** The Kitchen Staff shall have access to a dedicated Kitchen View, displaying active incoming orders, variants, and notes. Kitchen Staff can update the status of individual items (e.g., "In Progress", "Done").
-- **Dine Now (Direct Order):** Validated orders shall immediately route to the Kitchen Dashboard as active tickets.
-- **Booking Management:** Cashiers shall have access to a dedicated Booking View to review incoming reservations. 
-- **Booking Table Rules:** When a booking is received/pending or accepted/confirmed, the associated table must be locked (disabled from selection). The table is only freed when the booking is completed (guests finish) or rejected/cancelled (no-show).
+### FR-16 Booking and Kitchen Dashboard Flow
+- **Kitchen Dashboard:** The Kitchen Staff shall have access to a dedicated Kitchen View, displaying active incoming orders, variants, and notes. Kitchen Staff can update the status of individual items (`pending`, `in_progress`, `done`).
+- **Dine Now (Direct Order):** Validated orders shall immediately route to the Kitchen Dashboard as active tickets. The assigned table is instantly locked as `occupied`.
+- **Booking Management:** Cashiers shall have access to a dedicated Booking View to review incoming reservations (`pending`). 
+- **Booking Table Rules:** When a booking is accepted/confirmed by the Kasir, the associated table is locked as `booked`. The table is only freed when the booking is completed (guests finish) or rejected/cancelled (no-show).
 
-### FR-16 Payment Simulation (Midtrans)
-- The system shall integrate Midtrans sandbox for payment simulation.
-- Payment statuses supported:
-  - pending
-  - paid
-  - failed
-
-### FR-17 Payment Validation Rule (Customer QR)
-- Customer QR orders shall only be saved upon payment confirmation.
-- If payment is canceled, failed, or timed out in Midtrans, the QR order shall not be stored, and the system must cleanup related data.
-- *Note: This restriction does not apply to Cashier POS orders (which use the Open Bill system).*
+### FR-17 Payment Simulation & Booking Restrictions (Midtrans)
+- The system shall integrate Midtrans sandbox for payment simulation (`pending`, `paid`, `failed`, `expire`).
+- **Dine Now:** Supports digital payment via Midtrans and cash payment at the Kasir (requires Kasir manual confirmation).
+- **Booking Payments:** Bookings **mandate Midtrans Digital Payment** upon Kasir approval (Cash option is disabled to prevent fraudulent/false reservations).
+- If payment is canceled, failed, or timed out in Midtrans, the QR order shall be voided automatically, and the system must cleanup related data.
 
 ### FR-18 End-of-Day (Closing) & Shift Procedures
 - The system shall enforce a daily closing / shift closing verification by the cashier/manager.
 - The system shall check for any remaining **Open Bills** and require them to be closed (paid or voided).
-- The system shall require confirmation/reconciliation of the daily physical vs. system stock.
 - The system shall reconcile the **Cash Drawer** (System Cash vs Physical Cash).
 
-### FR-18 Reporting & Analytics
+### FR-19 Reporting & Analytics
 - The system shall provide sales reports daily/weekly/monthly.
 - The system shall provide best-selling product analytics.
 
-### FR-19 AI Recommendation (Rule-Based)
+### FR-20 AI Recommendation (Rule-Based)
 - The system shall recommend products based on weather and sales trends.
 
-### FR-20 User Management
+### FR-21 User Management
 - Owner shall manage staff accounts (CRUD).
 - Owner shall assign roles to staff.
 
@@ -172,7 +172,7 @@ This system consists of:
 - System should handle multiple customers browsing menu simultaneously.
 
 ### NFR-03 Reliability
-- Inventory deduction must only occur after payment confirmation.
+- Inventory deduction must correctly restock on void/refund.
 
 ### NFR-04 Scalability
 - System must be designed for future IoT attendance integration.
@@ -182,4 +182,4 @@ This system consists of:
 - POS dashboard must support fast cashier operations.
 
 ### NFR-06 Maintainability
-- Backend must implement modular service-based architecture.
+- Backend must implement modular service-based architecture (`CartService`, `TransactionService`, etc.).
