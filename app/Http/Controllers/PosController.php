@@ -97,10 +97,8 @@ class PosController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Check if cashier has active shift (owner/manager bypass)
-        $isCashier = auth()->user()->role->name === 'cashier';
-        $hasActiveShift = !$isCashier || CashDrawer::where('user_id', auth()->id())
-            ->where('status', 'open')
+        // Check if user has active shift (everyone must open shift to use POS)
+        $hasActiveShift = CashDrawer::where('status', 'open')
             ->exists();
 
         return view('pos.index', compact('categories', 'products', 'tables', 'discounts', 'openBills', 'hasActiveShift', 'upcomingBookings'));
@@ -111,15 +109,12 @@ class PosController extends Controller
      */
     public function createBill(Request $request)
     {
-        // Enforce shift opened (cashier only)
-        if (auth()->user()->role->name === 'cashier') {
-            $hasShift = CashDrawer::where('user_id', auth()->id())
-                ->where('status', 'open')
-                ->exists();
+        // Enforce shift opened for everyone globally
+        $hasShift = \App\Models\CashDrawer::where('status', 'open')
+            ->exists();
 
-            if (!$hasShift) {
-                return back()->with('error', '⚠️ Anda belum membuka shift. Silakan buka shift di Kas Laci terlebih dahulu.');
-            }
+        if (!$hasShift) {
+            return back()->with('error', '⚠️ Anda belum membuka shift. Silakan buka shift di Kas Laci terlebih dahulu.');
         }
 
         $request->validate([
@@ -464,10 +459,8 @@ class PosController extends Controller
                 }
             }
 
-            // Auto-log cash in to active cash drawer
-            $activeDrawer = \App\Models\CashDrawer::where('user_id', auth()->id())
-                ->where('status', 'open')
-                ->first();
+            // Get active drawer globally for POS transactions
+            $activeDrawer = \App\Models\CashDrawer::where('status', 'open')->first();
             if ($activeDrawer) {
                 $activeDrawer->logs()->create([
                     'type' => 'in',

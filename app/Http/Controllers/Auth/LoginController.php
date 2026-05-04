@@ -44,11 +44,9 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        // Flash shift warning for cashier
-        if ($user->role->name === 'cashier') {
-            $hasShift = CashDrawer::where('user_id', $user->id)
-                ->where('status', 'open')
-                ->exists();
+        // Flash shift warning for POS users
+        if (in_array($user->role->name, ['cashier', 'manager'])) {
+            $hasShift = CashDrawer::where('status', 'open')->exists();
 
             if (!$hasShift) {
                 session()->flash('warning', '⚠️ Anda belum membuka shift hari ini. Silakan buka shift sebelum melakukan transaksi.');
@@ -62,14 +60,12 @@ class LoginController extends Controller
     {
         $user = Auth::user();
 
-        // Warn cashier about unclosed shift
-        if ($user && $user->role->name === 'cashier') {
-            $hasOpenShift = CashDrawer::where('user_id', $user->id)
-                ->where('status', 'open')
-                ->exists();
+        // Warn user about unclosed shift
+        if ($user && in_array($user->role->name, ['cashier', 'manager'])) {
+            $hasOpenShift = CashDrawer::where('status', 'open')->exists();
 
             if ($hasOpenShift && !$request->has('force_logout')) {
-                return back()->with('warning', '⚠️ Anda masih memiliki shift aktif! Tutup shift di Kas Laci sebelum logout. <a href="' . route('cash-drawer.index') . '" style="font-weight:700;">Buka Kas Laci</a> atau <form action="' . route('logout') . '" method="POST" style="display:inline;"><input type="hidden" name="_token" value="' . csrf_token() . '"><input type="hidden" name="force_logout" value="1"><button type="submit" style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font-weight:700;">Paksa Logout</button></form>');
+                return back()->with('warning', '⚠️ Masih ada shift aktif di toko! Jika jam shift telah selesai, pastikan tutup shift di Kas Laci sebelum logout. <a href="' . route('cash-drawer.index') . '" style="font-weight:700;">Buka Kas Laci</a> atau <form action="' . route('logout') . '" method="POST" style="display:inline;"><input type="hidden" name="_token" value="' . csrf_token() . '"><input type="hidden" name="force_logout" value="1"><button type="submit" style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font-weight:700;">Tetap Logout (Tinggalkan Shift)</button></form>');
             }
         }
 

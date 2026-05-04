@@ -76,9 +76,7 @@ class RefundController extends Controller
 
             // Log cash out in active cash drawer (if cash payment)
             if ($transaction->payment_method === 'cash') {
-                $activeDrawer = \App\Models\CashDrawer::where('user_id', auth()->id())
-                    ->where('status', 'open')
-                    ->first();
+                $activeDrawer = \App\Models\CashDrawer::where('status', 'open')->first();
 
                 if ($activeDrawer) {
                     $activeDrawer->logs()->create([

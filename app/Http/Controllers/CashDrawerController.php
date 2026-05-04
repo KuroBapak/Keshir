@@ -13,12 +13,10 @@ class CashDrawerController extends Controller
      */
     public function index()
     {
-        $activeDrawer = CashDrawer::where('user_id', auth()->id())
-            ->where('status', 'open')
+        $activeDrawer = CashDrawer::where('status', 'open')
             ->first();
 
-        $history = CashDrawer::where('user_id', auth()->id())
-            ->where('status', 'closed')
+        $history = CashDrawer::where('status', 'closed')
             ->orderBy('closed_at', 'desc')
             ->paginate(10);
 
@@ -34,9 +32,8 @@ class CashDrawerController extends Controller
             'starting_cash' => 'required|numeric|min:0',
         ]);
 
-        // Prevent double open
-        $existing = CashDrawer::where('user_id', auth()->id())
-            ->where('status', 'open')
+        // Prevent double open globally
+        $existing = CashDrawer::where('status', 'open')
             ->first();
 
         if ($existing) {
@@ -100,9 +97,7 @@ class CashDrawerController extends Controller
 
     private function authorizeDrawer(CashDrawer $cashDrawer): void
     {
-        if ($cashDrawer->user_id !== auth()->id()) {
-            abort(403, 'Bukan shift Anda.');
-        }
+        // Drawer is store-wide, anyone can manage the active drawer
     }
 
     /**
@@ -111,8 +106,7 @@ class CashDrawerController extends Controller
      */
     public function shiftSales()
     {
-        $activeDrawer = CashDrawer::where('user_id', auth()->id())
-            ->where('status', 'open')
+        $activeDrawer = CashDrawer::where('status', 'open')
             ->first();
 
         // If no active shift, send empty collection to view

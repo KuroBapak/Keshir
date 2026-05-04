@@ -18,10 +18,8 @@ class TransactionService
     public function createOpenBill(array $data, int $cashierId): Transaction
     {
         return DB::transaction(function () use ($data, $cashierId) {
-            // Find active shift for this cashier
-            $activeDrawer = \App\Models\CashDrawer::where('user_id', $cashierId)
-                ->where('status', 'open')
-                ->first();
+            // Get active drawer globally
+            $activeDrawer = \App\Models\CashDrawer::where('status', 'open')->first();
 
             // Calculate bill number within this shift
             $billNumber = 1;
@@ -174,11 +172,9 @@ class TransactionService
                 'payment_method' => $method,
             ]);
 
-            // Auto-log cash in to active cash drawer
+            // Auto log if cash payment
             if ($method === 'cash') {
-                $activeDrawer = \App\Models\CashDrawer::where('user_id', $paymentData['cashier_id'] ?? $transaction->cashier_id)
-                    ->where('status', 'open')
-                    ->first();
+                $activeDrawer = \App\Models\CashDrawer::where('status', 'open')->first();
 
                 if ($activeDrawer) {
                     $activeDrawer->logs()->create([

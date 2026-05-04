@@ -1464,38 +1464,36 @@
 
             <!-- Categories -->
             <div class="category-row">
-                <!-- Hardcoded KOPI -->
-                <div class="category-card active" onclick="filterCategoryByText('kopi')" id="cat-tab-kopi">
+                <div class="category-card active" onclick="filterCategory('all')" id="cat-tab-all">
                     <div class="cat-img-box">
-                        <img src="{{ asset('images/Coffe.png') }}" class="cat-img" alt="Kopi">
+                        <div style="font-size:24px;">🍽️</div>
                     </div>
                     <div class="cat-text">
-                        <div class="cat-name">KOPI</div>
-                        <div class="cat-items">{{ $products->filter(function($p) { $n = strtolower($p->name); return str_contains($n, 'kopi') || str_contains($n, 'coffee') || str_contains($n, 'latte') || str_contains($n, 'espresso') || str_contains($n, 'americano') || str_contains($n, 'cappuccino') || str_contains($n, 'mocha'); })->count() }} items</div>
+                        <div class="cat-name">Semua Menu</div>
+                        <div class="cat-items">{{ $products->count() }} items</div>
                     </div>
                 </div>
 
-                <!-- Hardcoded TEH -->
-                <div class="category-card" onclick="filterCategoryByText('teh')" id="cat-tab-teh">
+                @foreach($categories as $cat)
+                @php
+                    $catName = strtolower($cat->name);
+                    $icon = '🍽️';
+                    if (str_contains($catName, 'kopi') || str_contains($catName, 'coffee')) $icon = '☕';
+                    elseif (str_contains($catName, 'teh') || str_contains($catName, 'tea') || str_contains($catName, 'matcha')) $icon = '🍵';
+                    elseif (str_contains($catName, 'makanan') || str_contains($catName, 'nasi') || str_contains($catName, 'mie')) $icon = '🍛';
+                    elseif (str_contains($catName, 'cemilan') || str_contains($catName, 'snack') || str_contains($catName, 'pastry')) $icon = '🥐';
+                    elseif (str_contains($catName, 'minuman') || str_contains($catName, 'beverage')) $icon = '🥤';
+                @endphp
+                <div class="category-card" onclick="filterCategory({{ $cat->id }})" id="cat-tab-{{ $cat->id }}">
                     <div class="cat-img-box">
-                        <img src="{{ asset('images/Tea.png') }}" class="cat-img" alt="Teh">
+                        <div style="font-size:24px;">{{ $icon }}</div>
                     </div>
                     <div class="cat-text">
-                        <div class="cat-name">TEH</div>
-                        <div class="cat-items">{{ $products->filter(function($p) { $n = strtolower($p->name); return str_contains($n, 'teh') || str_contains($n, 'tea') || str_contains($n, 'matcha') || str_contains($n, 'oolong') || str_contains($n, 'chamomile'); })->count() }} items</div>
+                        <div class="cat-name">{{ strtoupper($cat->name) }}</div>
+                        <div class="cat-items">{{ $products->where('category_id', $cat->id)->count() }} items</div>
                     </div>
                 </div>
-
-                <!-- Hardcoded SNACK -->
-                <div class="category-card" onclick="filterCategoryByText('snack')" id="cat-tab-snack">
-                    <div class="cat-img-box">
-                        <img src="{{ asset('images/Snack.png') }}" class="cat-img" alt="Snack">
-                    </div>
-                    <div class="cat-text">
-                        <div class="cat-name">SNACK</div>
-                        <div class="cat-items">{{ $products->filter(function($p) { $n = strtolower($p->name); return str_contains($n, 'snack') || str_contains($n, 'kue') || str_contains($n, 'roti') || str_contains($n, 'fries') || str_contains($n, 'kentang') || str_contains($n, 'croissant') || str_contains($n, 'pastry') || str_contains($n, 'cake') || str_contains($n, 'tart'); })->count() }} items</div>
-                    </div>
-                </div>
+                @endforeach
             </div>
 
             <!-- Products -->
@@ -1688,7 +1686,7 @@
             <button onclick="closePaymentModal()" style="background:var(--danger); color:white; border:none; padding: 0.5rem 1rem; border-radius:8px; cursor:pointer; font-weight:bold;">Tutup</button>
         </div>
         <div class="payment-content">
-            <button class="payment-btn" onclick="submitCheckout('tunai')">TUNAI</button>
+            <button class="payment-btn" onclick="submitCheckout('tunai')" id="btnTunaiModal">TUNAI</button>
             <button class="payment-btn" onclick="submitCheckout('digital')" id="btnMidtrans">MIDTRANS</button>
         </div>
     </div>
@@ -2020,11 +2018,14 @@
                     alert('Silakan isi waktu kedatangan untuk booking.');
                     return;
                 }
-                // Booking: skip payment modal, submit directly
+                // Booking: skip payment modal, submit directly for cashier validation
                 if (confirm('Kirim reservasi booking? Kasir akan mengonfirmasi reservasi Anda terlebih dahulu sebelum pembayaran.')) {
                     submitCheckout('booking');
                 }
                 return;
+            } else {
+                const btnTunai = document.getElementById('btnTunaiModal');
+                if(btnTunai) btnTunai.style.display = 'inline-block';
             }
 
             document.getElementById('paymentModal').classList.add('show');

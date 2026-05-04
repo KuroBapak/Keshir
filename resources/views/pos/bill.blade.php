@@ -442,7 +442,13 @@
                 <div class="total-row grand"><span>TOTAL</span><span>Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</span></div>
 
                 @if($transaction->payment_status === 'open' && $transaction->details->count() > 0)
-                    <button class="btn btn-success" style="width:100%;margin-top:0.75rem;justify-content:center;padding:0.85rem;" onclick="document.getElementById('checkout-modal').classList.add('show')">💰 Proses Pembayaran</button>
+                    @if($transaction->order_type === 'booking')
+                        <div style="background:var(--warning); color:var(--white); padding:0.85rem; text-align:center; border-radius:8px; margin-top:0.75rem; font-weight:bold; font-size:0.9rem;">
+                            ⏳ Menunggu Pelanggan Bayar via Midtrans
+                        </div>
+                    @else
+                        <button class="btn btn-success" style="width:100%;margin-top:0.75rem;justify-content:center;padding:0.85rem;" onclick="document.getElementById('checkout-modal').classList.add('show')">💰 Proses Pembayaran</button>
+                    @endif
                 @endif
             </div>
         </div>

@@ -135,7 +135,7 @@ class CheckoutController extends Controller
         }
 
         // Create transaction using service
-        // Since it's from QR, it's open and source is qr
+        // Find active shift globally
         $activeDrawer = \App\Models\CashDrawer::where('status', 'open')->first();
         $cashDrawerId = $activeDrawer ? $activeDrawer->id : null;
 
@@ -347,23 +347,7 @@ class CheckoutController extends Controller
         $paymentMethod = $request->input('payment_method');
 
         if ($paymentMethod === 'tunai') {
-            // Cash: mark payment method, kasir must confirm
-            $transaction->update(['payment_method' => 'cash']);
-
-            Payment::create([
-                'transaction_id' => $transaction->id,
-                'method' => 'cash',
-                'status' => 'pending',
-                'amount_paid' => 0,
-            ]);
-
-            // Track in session for order history
-            $myOrders = session('my_orders', []);
-            $myOrders[] = $transaction->id;
-            session(['my_orders' => $myOrders]);
-
-            return redirect()->route('public.order-status', $transaction)
-                ->with('cash_booking_submitted', true);
+            return back()->with('error', 'Pembayaran tunai tidak tersedia untuk reservasi. Silakan gunakan pembayaran digital (Midtrans).');
         }
 
         // Digital: Generate Midtrans Snap Token
