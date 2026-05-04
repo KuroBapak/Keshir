@@ -1,96 +1,214 @@
-# 📖 Keshir User Manual
+# Keshir User Manual
 
-Selamat datang di Panduan Pengguna (User Manual) Keshir POS. Panduan ini dirancang untuk membantu Staff dan Pelanggan dalam menggunakan seluruh fitur sistem secara optimal.
-
----
-
-## 1. Panduan Staf (Staff Manual)
-
-### 1.1 Absensi (Check-in / Check-out)
-1. Buka halaman absensi (`/absencetemp` selama fase pengembangan).
-2. Pilih nama Anda dan klik **Check-In**.
-3. Sistem akan mencatat waktu kehadiran Anda dan membandingkannya dengan jadwal Shift Anda (Tepat Waktu atau Terlambat).
-4. Setelah selesai bekerja, kembali ke halaman ini dan klik **Check-Out**.
-> [!IMPORTANT]
-> Sistem menerapkan aturan Anti-Cheating: Staf tidak akan bisa login ke Dashboard jika belum melakukan Check-In absensi untuk hari tersebut. Jika lupa Check-Out di hari sebelumnya, Manager memiliki akses untuk me-reset status Check-Out Anda.
-
-### 1.2 Membuka Shift Kasir (Cash Drawer)
-1. Setelah login, Kasir harus masuk ke menu **Kas Laci (Cash Drawer)**.
-2. Klik tombol **Buka Shift**.
-3. Masukkan jumlah uang fisik/modal awal (Starting Cash) yang ada di laci kasir, lalu klik konfirmasi.
-> [!WARNING]
-> Anda tidak dapat memproses pesanan di POS dan pelanggan tidak akan bisa membuka halaman QR Menu publik jika Shift Kasir belum dibuka.
-
-### 1.3 Operasional POS (Kasir)
-1. Masuk ke halaman **POS Dashboard**.
-2. Untuk membuat pesanan baru, pilih tipe pesanan (Dine-in, Takeaway, atau Booking) dan pilih meja jika Dine-In.
-3. Tambahkan menu ke keranjang. Anda bisa memilih varian (contoh: Panas/Dingin) dan Add-on (contoh: Ekstra Keju) jika tersedia.
-4. Klik **Buat Bill**. Pesanan akan masuk ke daftar **Open Bill** (Belum Dibayar).
-5. Buka tagihan tersebut, dan jika pelanggan ingin membayar, klik Checkout dan pilih metode pembayaran (Tunai atau Midtrans).
-6. Jika Tunai, masukkan jumlah uang yang diterima, sistem akan menghitung kembalian.
-7. Jika transaksi selesai, status akan berubah menjadi Paid (Lunas).
-
-### 1.4 Manajemen Booking (Kasir)
-1. Pesanan dengan tipe Booking yang dikirim pelanggan akan muncul di tab/halaman **Booking**.
-2. Kasir dapat melihat rincian Booking (waktu kedatangan, meja, menu).
-3. Klik **Setujui (Approve)** atau **Tolak (Reject)**.
-4. Jika disetujui, meja yang dipilih pelanggan akan otomatis dikunci (berstatus *Booked*) dan pelanggan bisa melanjutkan ke proses pembayaran Digital.
-
-### 1.5 Void & Refund
-*   **Void (Batal):** Digunakan untuk membatalkan tagihan yang **Belum Lunas (Open Bill)**. Buka tagihan di POS, lalu klik tombol Void.
-*   **Refund (Pengembalian Dana):** Digunakan untuk membatalkan transaksi yang **Sudah Lunas**. Masuk ke menu Refund, cari transaksi, dan setujui pengembalian dana.
-> [!NOTE]
-> Baik Void maupun Refund akan secara otomatis mengembalikan jumlah stok bahan baku ke dalam sistem Inventory berdasarkan resep yang terikat.
-
-### 1.6 Dapur (Kitchen Dashboard)
-1. Staff Dapur masuk ke menu **Kitchen**.
-2. Semua pesanan yang masuk dan tervalidasi akan muncul sebagai tiket (Order Card).
-3. Staff Dapur dapat mengubah status masakan dari `Pending` → `🔥 Sedang Dimasak (In Progress)` → `✅ Selesai (Done)`.
-4. Perubahan status ini akan terlihat secara realtime di layar *Status Pesanan* pelanggan.
-
-### 1.7 Inventory & Resep (Manager/Owner)
-1. **Inventory:** Tambahkan bahan baku dan kelola stok masuk (Batch). Setiap stok masuk wajib memiliki **Tanggal Kadaluarsa (Expiry Date)**. Sistem menggunakan metode FIFO (First-In, First-Out) untuk otomatis memotong stok bahan baku yang paling dekat tanggal kadaluarsanya.
-2. **Resep:** Masuk ke menu Resep, pilih produk, dan tentukan komponen bahan baku serta takarannya.
-
-### 1.8 Menutup Shift Kasir
-1. Di akhir hari kerja, Kasir harus masuk ke menu **Kas Laci**.
-2. Pastikan semua *Open Bill* sudah ditutup (dibayar atau divoid).
-3. Klik **Tutup Shift**.
-4. Masukkan jumlah fisik uang tunai yang ada di laci. Sistem akan menghitung selisih (Discrepancy) antara uang fisik dan catatan sistem.
+Panduan ini menjelaskan cara menggunakan sistem Keshir untuk semua peran: Owner, Manager, Cashier, Kitchen Staff, dan Customer.
 
 ---
 
-## 2. Panduan Pelanggan (QR Ordering)
+## 1. Akses & Login
 
-### 2.1 Akses Menu
-1. Scan QR code yang ada di meja menggunakan kamera smartphone.
-2. Anda akan diarahkan ke halaman Menu Utama Keshir secara otomatis tanpa perlu login.
-> [!NOTE]
-> Jika restoran belum buka (Kasir belum membuka Shift), halaman akan memblokir akses pesanan dan menampilkan pesan "We're Not Open Yet".
+## 1.1 URL Penting
+- Login staff: `/login`
+- Absensi sementara: `/absencetemp`
+- Dashboard owner/manager: `/dashboard`
+- POS kasir: `/pos`
+- Kitchen display: `/kitchen`
+- Public menu pelanggan: `/menu`
 
-### 2.2 Membuat Pesanan
-1. Jelajahi menu menggunakan kategori atau fitur pencarian.
-2. Pilih produk yang diinginkan. Anda bisa mengatur Varian, menambah Topping (Add-ons), atau menambahkan Catatan Khusus untuk dapur.
-3. Klik **Tambah ke Keranjang**.
+## 1.2 Aturan Login Staff
+1. Owner bisa login langsung.
+2. Staff non-owner harus check-in dulu di absensi.
+3. Jika staff sudah check-out hari ini, akses akan ditolak sampai hari berikutnya.
 
-### 2.3 Checkout (Dine-In / Takeaway)
-1. Buka Keranjang Anda dan periksa daftar pesanan.
-2. Klik **Checkout**.
-3. Pilih tipe **Dine In** atau **Take Away**.
-4. Isi Nama, Nomor HP, dan pilih Meja (Sistem secara otomatis menyembunyikan meja yang sedang dipakai).
-5. Anda dapat memilih metode pembayaran:
-   *   **Digital (Midtrans):** Langsung membayar via QRIS/Transfer.
-   *   **Tunai:** Anda harus berjalan ke Kasir untuk memberikan uang tunai.
-6. Setelah selesai, Anda akan diarahkan ke layar pelacakan status pesanan.
+---
 
-### 2.4 Checkout (Booking)
-1. Buka Keranjang Anda dan klik Checkout.
-2. Pilih tipe pesanan **Booking**.
-3. Isi detail identitas, Meja yang diinginkan, dan **Waktu Reservasi** (Tanggal & Jam).
-4. Kirim pesanan. Anda akan masuk ke halaman *Menunggu Konfirmasi Kasir*.
-5. Setelah Kasir menyetujui pesanan Anda, tombol pembayaran akan muncul. 
-> [!IMPORTANT]
-> Untuk pesanan Booking, Keshir **hanya menerima Pembayaran Digital (Midtrans)** untuk memastikan validitas reservasi dan mencegah pesanan fiktif.
+## 2. Panduan Owner & Manager
 
-### 2.5 Lacak Status Pesanan
-Setelah memesan, jangan tutup halaman *Status Pesanan*. Halaman ini akan ter-update otomatis secara realtime untuk menampilkan apakah makanan Anda sedang Antre, Sedang Dimasak, atau Sudah Selesai!
+## 2.1 Dashboard
+Owner/Manager dapat mengakses:
+- statistik ringkas,
+- quick links ke master data,
+- laporan penjualan.
+
+## 2.2 Master Data
+
+### Kategori
+- Tambah/edit/hapus kategori.
+- Kategori yang masih dipakai produk tidak bisa dihapus.
+
+### Produk
+- Tambah nama, harga dasar, kategori, deskripsi, tags.
+- Upload foto produk (maks 5 file).
+- Atur variant dan addon langsung dari form produk.
+- Aktif/nonaktif produk via `is_active`.
+
+### Resep
+- Atur resep per produk.
+- Tentukan komposisi ingredient + quantity per porsi.
+
+### Ingredient & Batch
+- Buat ingredient (unit, minimum stock, optional content per pack).
+- Stock masuk melalui **batch** (wajib expiry date).
+- Sistem menampilkan batch aktif dan total stock.
+
+### Meja
+- Tambah/edit/hapus meja.
+- Status meja: available, occupied, booked.
+
+### Discount
+- Buat diskon nominal/persentase.
+- Aktif/nonaktif promo.
+
+### Settings
+- Atur tax enabled/rate.
+- Atur service charge enabled/rate.
+
+### Shift
+- CRUD shift (jam masuk/keluar, late threshold, warna).
+- Assign default shift ke user.
+- Atur allow double shift.
+
+## 2.3 Attendance Management
+- Lihat log absensi berdasarkan rentang tanggal.
+- Lihat statistik hadir, selesai, alpha, rata-rata jam.
+- Reset checkout staff jika dibutuhkan.
+- Owner dapat menghapus log absensi.
+
+## 2.4 Reports
+
+### Daily Summary
+- total transaksi paid,
+- revenue,
+- tax/service/discount,
+- split cash vs digital,
+- jumlah void.
+
+### Best Selling
+- ranking produk terlaris berdasarkan period:
+  - today, week, month, all.
+
+---
+
+## 3. Panduan Cashier
+
+## 3.1 Sebelum Mulai Jualan
+1. Check-in absensi.
+2. Buka menu **Kas Laci** (`/cash-drawer`).
+3. Klik **Buka Shift** dan isi modal awal.
+
+> Cashier tidak bisa membuat transaksi POS jika shift belum dibuka.
+
+## 3.2 Operasional POS (`/pos`)
+
+### Membuat Bill
+1. Pilih order type (dine-in/takeaway).
+2. Pilih meja (untuk dine-in).
+3. Klik buat bill.
+
+### Menambah Item
+1. Buka bill.
+2. Pilih produk dari katalog.
+3. Isi qty, variant, addon, catatan.
+4. Simpan item.
+
+### Mengelola Bill
+- Hapus item jika diperlukan.
+- Void bill jika pesanan batal sebelum selesai.
+
+### Checkout
+- **Cash**: isi uang diterima, sistem hitung kembalian.
+- **Digital**: lanjut ke halaman pembayaran Midtrans.
+
+### Receipt
+Setelah payment sukses, receipt dapat dilihat/print.
+
+## 3.3 Booking Management
+- Buka daftar booking di POS.
+- Approve/reject booking.
+- Approve booking (hari ini) akan lock meja ke status booked.
+
+## 3.4 Konfirmasi Cash untuk QR Order
+Untuk order QR dengan metode tunai:
+1. Kasir menerima uang fisik.
+2. Klik konfirmasi cash pada transaksi.
+3. Sistem ubah status paid dan mencatat cash in.
+
+## 3.5 Menutup Shift
+1. Buka Kas Laci.
+2. Klik tutup shift.
+3. Isi uang fisik akhir.
+4. Sistem tampilkan selisih kas.
+
+---
+
+## 4. Panduan Kitchen Staff
+
+## 4.1 Kitchen Dashboard (`/kitchen`)
+- Menampilkan tiket pesanan aktif.
+- Menampilkan detail item, variant, addon, notes.
+
+## 4.2 Update Status Item
+1. `Pending` -> klik **Masak** (`in_progress`)
+2. `In Progress` -> klik **Selesai** (`done`)
+
+> Saat item masuk `in_progress`, stok ingredient otomatis berkurang (FIFO).
+
+## 4.3 Selesai Semua
+- Gunakan tombol **Selesai Semua** untuk menandai satu order selesai.
+
+---
+
+## 5. Panduan Customer (Public QR)
+
+## 5.1 Akses Menu
+1. Scan QR.
+2. Buka `/menu`.
+3. Pilih produk, variant, addon, catatan.
+
+## 5.2 Cart & Checkout
+1. Buka cart.
+2. Pilih tipe pesanan:
+   - dine-in
+   - takeaway
+   - booking
+3. Isi nama, telepon, meja, jumlah orang, waktu booking (jika booking).
+
+## 5.3 Payment
+- Digital: lewat Midtrans.
+- Tunai: status pending sampai kasir konfirmasi.
+
+## 5.4 Order Status
+- Lihat status order di halaman `/order/{id}`.
+- Tracking tetap bisa diakses dari menu `my orders` pada session yang sama.
+
+---
+
+## 6. Language Switcher (ID/EN)
+
+Halaman berikut mendukung penggantian bahasa frontend:
+- dashboard layout,
+- POS,
+- kitchen.
+
+Bahasa disimpan di browser (`localStorage`) dengan key `keshir_lang`.
+
+---
+
+## 7. Error Umum & Solusi Cepat
+
+| Masalah | Penyebab Umum | Solusi |
+|---|---|---|
+| Tidak bisa login staff | belum check-in | check-in dulu di `/absencetemp` |
+| Cashier tidak bisa buat bill | shift belum open | buka shift di kas laci |
+| Order QR dine-in tidak bisa checkout | toko belum open | tunggu shift dibuka + staff aktif |
+| Midtrans gagal | server key/env salah / sandbox error | cek `.env` MIDTRANS_* |
+| Chatbot tidak merespon | Ollama mati/tidak reachable | nyalakan Ollama, cek `OLLAMA_URL` |
+
+---
+
+## 8. Best Practice Operasional
+
+1. Buka shift hanya saat kas fisik siap.
+2. Pastikan setiap produk memiliki resep untuk akurasi inventory.
+3. Jangan approve booking jika meja tidak realistis tersedia.
+4. Tutup shift tiap akhir operasional.
+5. Jalankan audit sederhana harian: transaksi paid, void, refund, dan selisih kas.

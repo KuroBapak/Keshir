@@ -1,185 +1,253 @@
-# 📌 Software Requirements Specification (SRS)
+# Software Requirements Specification (SRS)
 
-## 1. Purpose
-The purpose of this system is to provide an **all-in-one web-based POS platform** for cafes and restaurants.  
-It integrates POS transactions, inventory automation, recipe-based stock deduction, customer QR ordering, booking, attendance, payment simulation, reporting, and AI recommendation.
+## 1. Pendahuluan
 
----
+## 1.1 Tujuan
+Dokumen ini mendefinisikan kebutuhan sistem Keshir POS berdasarkan implementasi yang berjalan saat ini, sebagai acuan pengembangan, pengujian, dan maintenance.
 
-## 2. Scope
-This system consists of:
-- Staff Panel (Owner, Manager, Cashier, Kitchen Staff)
-- Customer QR Ordering Module
-- POS System
-- Inventory Management
-- Recipe Management (Core Feature)
-- Booking Management
-- Attendance Module (IoT-ready)
-- Payment Simulation (Midtrans)
-- AI Recommendation (Rule-Based)
+## 1.2 Ruang Lingkup
+Keshir POS adalah aplikasi manajemen operasional coffee shop yang mencakup:
+- operasional kasir (POS),
+- manajemen order dapur,
+- inventory berbasis resep,
+- pemesanan pelanggan via QR menu,
+- booking meja,
+- attendance staff (web + API device),
+- manajemen shift kasir (cash drawer),
+- laporan bisnis,
+- chatbot AI berbasis Ollama lokal.
 
----
+## 1.3 Definisi Singkat
+- **Open Bill**: transaksi yang belum lunas (`payment_status=open`).
+- **FIFO Batch**: deduksi stok dari batch ingredient dengan expiry paling dekat.
+- **Shift**: sesi kerja kasir yang dibuka/ditutup melalui cash drawer.
+- **QR Order**: transaksi dari public menu (`source=qr`).
 
-## 3. Intended Users
-- Owner / Super Admin
-- Manager / Admin / Leader
-- Cashier
-- Kitchen Staff
-- Customer (Public User)
-
----
-
-## 4. System Environment
-| Component | Technology |
-|----------|------------|
-| Backend | Laravel 12 |
-| Frontend | Blade / Simple HTML CSS / Tailwind |
-| Database | MySQL |
-| Hosting | Home Server (Coolify) |
-| Payment | Midtrans Sandbox Simulation |
-| AI Recommendation | Rule-Based |
-| Future Attendance | IoT MQTT Integration |
+## 1.4 Aktor Sistem
+- **Owner**
+- **Manager**
+- **Cashier**
+- **Kitchen Staff**
+- **Customer (Public User via QR)**
+- **Attendance Device (ESP32/RFID)**
+- **Midtrans Webhook**
 
 ---
 
-## 5. Functional Requirements (FR)
+## 2. Gambaran Umum Sistem
 
-### FR-01 Authentication & Authorization
-- The system shall provide login using username/password.
-- The system shall restrict features based on role-based access control (RBAC).
+## 2.1 Arsitektur Umum
+- Backend: Laravel 12
+- Frontend: Blade + Tailwind (server-rendered)
+- DB: MySQL/SQLite
+- Integrasi eksternal: Midtrans, Ollama
 
-### FR-02 Attendance-Based Login Restriction (Anti-Cheating)
-- The system shall deny login access to staff users who have not checked-in for the day.
-- This rule applies to all roles except Owner.
-
-### FR-03 Attendance System (Web vs IoT)
-- The system shall allow staff to check-in and check-out, and log the corresponding `status_in` (on_time, late) based on their assigned shift.
-- The system shall maintain an Attendance Dashboard providing period stats (average work hours, attendance rate, total alpha/absence).
-- Managers have the authority to reset a staff's check-out if made by mistake. Only the Owner can hard-delete attendance logs.
-- For the development phase, the system provides a temporary web route (`/absencetemp`) containing a dropdown of seeded users to perform manual check-in/out.
-- The web attendance is designed to be easily replaced by the future IoT MQTT device integration.
-
-### FR-03B Cash Drawer & Shift Management
-- The system shall require the Cashier to input the **Starting Cash** (modal awal) when opening a shift.
-- The system shall track all cash transactions (Cash IN from sales, Cash OUT from refunds or petty cash).
-- The system shall provide a **Shift Sales Log** (Detil Penjualan Shift) showing all transactions made during the currently open shift.
-- The system shall require the Cashier to input the **Ending Cash** (total fisik uang) when closing the shift, and log any discrepancies.
-
-### FR-04 POS Order Creation
-- The system shall allow cashier to create orders (dine-in/take-away) and assign a table/seat.
-- The system shall prevent selection of a table if its status is currently occupied or booked.
-- Orders created by the cashier shall immediately be stored as an **Open Bill** (unpaid).
-- The system shall allow the Cashier to add **Notes/Add-ons** (e.g., "Less sugar") to specific items.
-
-### FR-05 Cart, Checkout, and Payment Flow (Cashier)
-- The system shall allow adding/removing items and modifying quantity.
-- The system shall calculate subtotal, **Tax (e.g., PPN), Service Charge, and Discounts**, yielding the final Grand Total.
-- The Master Admin shall have the ability to enable/disable Tax and Service Charge calculations.
-- Upon checkout, the cashier must choose the payment method (Cash or Digital).
-- **Cash Payment:** The system shall display a modal to input the received cash amount and automatically calculate the change.
-- **Digital Payment:** The system shall process the payment (e.g., via QRIS/Transfer).
-- Transactions can be marked as Paid, or left as Open Bill to be paid later.
-
-### FR-06 Transaction Modification (Void & Refund)
-- **Void:** If an **Open Bill** is canceled (unpaid), the Cashier can **Void** it without restrictions, and the system shall automatically restock the ingredients.
-- **Refund:** If a **Paid Bill** is canceled (e.g., failed to serve), the system shall record a **Refund Log** (stating the amount, reason, and authorized user) and restock the ingredients.
-
-### FR-07 Transaction Storage & Invoicing
-- The system shall store transaction data, details, addons, and specific variants.
-- The system shall generate a digital receipt after successful checkout.
-- The system shall support printing/generating billing statements for Open Bills.
-
-### FR-08 Product/Menu Management
-- The system shall support CRUD for menu items.
-- Each product shall have name, base price, category, photo, tags.
-- **Product Variants & Add-ons:** The system shall allow products to have variants (e.g., Size, Hot/Ice) and Add-ons (e.g., Extra shot, Extra cheese) that **modify the final price**.
-
-### FR-08B Discount & Promo Management
-- The Manager/Admin shall be able to create Discounts (nominal or percentage).
-- Discounts can be applied to specific items or the entire bill.
-
-### FR-09 Inventory Management (Ingredients)
-- The system shall support CRUD for ingredients.
-- The system shall support stock in/out logs via batches (`IngredientBatch`).
-- The system shall require an **Expiry Date** input during stock-in.
-
-### FR-10 Expiry & Low Stock Alerts
-- The system shall alert admin/manager if stock is below the minimum threshold.
-- The system shall alert admin/manager of ingredients approaching their Expiry Date.
-
-### FR-11 Recipe Management
-- The system shall allow creating recipes linked to menu items.
-- Recipes shall define ingredient quantity per product.
-
-### FR-12 Automatic Recipe-Based Stock Deduction (FIFO)
-- The system shall automatically deduct ingredient stock upon order creation or payment.
-- The system shall apply a **First-In, First-Out (FIFO)** method, prioritizing the deduction of stock batches with the closest Expiry Date.
-- If an order is **Voided or Refunded**, the deducted ingredients must be accurately returned to inventory.
-
-### FR-13 Public Menu Availability Rules
-- The public QR Menu page (`/menu`) shall strictly evaluate the current operational state.
-- **Shop is Closed:** The public menu is restricted ("We're Not Open Yet") if the Cashier has not opened a shift (Cash Drawer) **AND** no staff member is actively Checked-In (Attendance).
-
-### FR-14 Customer QR Ordering Module
-- Customers shall access menu via QR without login.
-- Customers shall browse menu, filter items dynamically by categories and search strings, and add to cart.
-- The system shall allow Customers to select **Variants/Add-ons** (affecting price) and add **Notes** to their order.
-- The system shall calculate and display the Subtotal, Tax, Service Charge, and Grand Total to the customer.
-
-### FR-15 Unified Checkout (Dine Now / Booking) from QR
-- Customer checkout shall provide options: Dine Now & Booking.
-- Both options shall request: customer name, phone number, table/seat, and number of people.
-- The Table selection dropdown shall only display available tables (hiding occupied/booked tables based on current POS/Booking data).
-- Booking shall additionally require booking time.
-
-### FR-16 Booking and Kitchen Dashboard Flow
-- **Kitchen Dashboard:** The Kitchen Staff shall have access to a dedicated Kitchen View, displaying active incoming orders, variants, and notes. Kitchen Staff can update the status of individual items (`pending`, `in_progress`, `done`).
-- **Dine Now (Direct Order):** Validated orders shall immediately route to the Kitchen Dashboard as active tickets. The assigned table is instantly locked as `occupied`.
-- **Booking Management:** Cashiers shall have access to a dedicated Booking View to review incoming reservations (`pending`). 
-- **Booking Table Rules:** When a booking is accepted/confirmed by the Kasir, the associated table is locked as `booked`. The table is only freed when the booking is completed (guests finish) or rejected/cancelled (no-show).
-
-### FR-17 Payment Simulation & Booking Restrictions (Midtrans)
-- The system shall integrate Midtrans sandbox for payment simulation (`pending`, `paid`, `failed`, `expire`).
-- **Dine Now:** Supports digital payment via Midtrans and cash payment at the Kasir (requires Kasir manual confirmation).
-- **Booking Payments:** Bookings **mandate Midtrans Digital Payment** upon Kasir approval (Cash option is disabled to prevent fraudulent/false reservations).
-- If payment is canceled, failed, or timed out in Midtrans, the QR order shall be voided automatically, and the system must cleanup related data.
-
-### FR-18 End-of-Day (Closing) & Shift Procedures
-- The system shall enforce a daily closing / shift closing verification by the cashier/manager.
-- The system shall check for any remaining **Open Bills** and require them to be closed (paid or voided).
-- The system shall reconcile the **Cash Drawer** (System Cash vs Physical Cash).
-
-### FR-19 Reporting & Analytics
-- The system shall provide sales reports daily/weekly/monthly.
-- The system shall provide best-selling product analytics.
-
-### FR-20 AI Recommendation (Rule-Based)
-- The system shall recommend products based on weather and sales trends.
-
-### FR-21 User Management
-- Owner shall manage staff accounts (CRUD).
-- Owner shall assign roles to staff.
+## 2.2 Batasan Sistem
+- Otorisasi berbasis role + middleware.
+- Staff non-owner wajib check-in sebelum bisa mengakses area auth.
+- Cashier wajib membuka shift untuk proses transaksi POS.
+- Public dine-in/takeaway bergantung pada status operasional.
 
 ---
 
-## 6. Non-Functional Requirements (NFR)
+## 3. Kebutuhan Fungsional
 
-### NFR-01 Security
-- Passwords must be hashed.
-- Role-based access control must be enforced.
+## FR-01 Autentikasi & Otorisasi
+1. Sistem harus menyediakan login menggunakan `username` + `password`.
+2. Sistem harus membatasi akses fitur berdasarkan role.
+3. Redirect pasca login harus menyesuaikan role:
+   - owner/manager -> `/dashboard`
+   - cashier -> `/pos`
+   - kitchen_staff -> `/kitchen`
 
-### NFR-02 Performance
-- System should handle multiple customers browsing menu simultaneously.
+## FR-02 Attendance Gate
+1. Owner bypass attendance gate.
+2. Staff selain owner harus memiliki log check-in hari ini untuk bisa login.
+3. User yang sudah check-out hari ini harus diblokir dari akses (force logout oleh middleware attendance).
 
-### NFR-03 Reliability
-- Inventory deduction must correctly restock on void/refund.
+## FR-03 Attendance Management
+1. Sistem harus menyediakan halaman absensi sementara (`/absencetemp`) untuk check-in/check-out manual.
+2. Sistem harus mendukung attendance management (rekap, filter tanggal/user, statistik).
+3. Manager/owner dapat reset checkout staff; owner dapat hapus log absensi.
+4. Sistem harus mendukung assignment shift default per user dan opsi `allow_double_shift`.
 
-### NFR-04 Scalability
-- System must be designed for future IoT attendance integration.
+## FR-04 Shift & Cash Drawer
+1. Cashier harus membuka shift dengan `starting_cash`.
+2. Sistem harus menolak multiple active shift untuk user yang sama.
+3. Sistem harus menyimpan log kas (`cash_drawer_logs`) tipe `in/out`.
+4. Saat tutup shift, sistem menghitung selisih `ending_cash` vs `expected_ending_cash`.
+5. Sistem menyediakan tampilan detail shift sales untuk shift aktif.
 
-### NFR-05 Usability
-- Customer QR menu must be mobile-friendly.
-- POS dashboard must support fast cashier operations.
+## FR-05 Master Data
+1. Owner/manager dapat CRUD:
+   - category
+   - product
+   - ingredient + batch
+   - recipe
+   - table
+   - discount
+   - settings tax/service
+   - shift
+2. Product mendukung:
+   - multi foto (max 5)
+   - variant
+   - addon
+   - active/inactive state
 
-### NFR-06 Maintainability
-- Backend must implement modular service-based architecture (`CartService`, `TransactionService`, etc.).
+## FR-06 Inventory & Recipe
+1. Ingredient harus menyimpan unit, minimum stock, dan optional `content_per_pack`.
+2. Stock in harus melalui batch dengan expiry date.
+3. Recipe harus memetakan product -> ingredient -> quantity.
+4. Sistem harus dapat menampilkan stok aktif batch (stock > 0) dan urut expiry.
+
+## FR-07 POS Open Bill
+1. Cashier/manager/owner dapat membuat bill POS.
+2. Cashier tidak boleh membuat bill jika shift belum dibuka.
+3. Bill mendukung add/remove item, variant, addon, notes.
+4. Bill dapat di-void selama status masih open.
+
+## FR-08 Checkout & Payment POS
+1. Checkout metode `cash`:
+   - validasi amount >= grand total,
+   - payment langsung paid,
+   - cash in otomatis tercatat ke cash drawer aktif.
+2. Checkout metode `digital`:
+   - generate Midtrans Snap token,
+   - menunggu konfirmasi pembayaran.
+3. Sistem harus menghasilkan receipt untuk transaksi berhasil.
+
+## FR-09 Kitchen Workflow
+1. Kitchen dashboard harus menampilkan tiket aktif sesuai aturan:
+   - source POS: open/paid
+   - source QR: hanya paid
+   - booking QR: tampil jika booking approved untuk hari ini
+2. Status item: `pending -> in_progress -> done`.
+3. Ketika status pindah ke `in_progress`, sistem deduksi ingredient via FIFO.
+4. Fitur `mark all done` harus menyelesaikan semua item pending/in_progress.
+
+## FR-10 Public QR Ordering
+1. Customer dapat melihat menu publik, cart, checkout, order status, dan riwayat order session.
+2. Public menu harus menghitung subtotal, tax, service, grand total.
+3. Public menu availability:
+   - dine-in/takeaway: memerlukan shift open + ada staff yang belum checkout.
+   - booking tetap dapat dibuat meski belum open.
+4. Checkout publik mendukung:
+   - digital (Midtrans),
+   - tunai (status pending sampai dikonfirmasi kasir).
+
+## FR-11 Booking
+1. QR booking dibuat dengan status `pending`.
+2. Kasir dapat update booking status (`pending`, `approved`, `rejected`).
+3. Approved/pending booking (hari ini) harus lock meja jadi `booked`.
+4. Rejected booking membuka kembali meja dan dapat mem-void transaksi open.
+
+## FR-12 Midtrans Integration
+1. Sistem harus membuat order id unik untuk transaksi digital (`QR-...` / `POS-...`).
+2. Webhook Midtrans harus memperbarui payment & transaction status.
+3. Jika pembayaran digital gagal/expire/cancel untuk order QR open, transaksi harus di-void.
+
+## FR-13 Refund
+1. Refund hanya untuk transaksi paid.
+2. Refund harus menyimpan nominal, alasan, dan authorized user.
+3. Refund harus mengembalikan stok untuk item in_progress/done.
+4. Refund cash harus membuat cash out log.
+
+## FR-14 Reporting
+1. Daily summary report:
+   - revenue, tax, service, discount, cash vs digital, void count.
+2. Best-selling report:
+   - aggregate qty & revenue per produk,
+   - filter period (`today`, `week`, `month`, `all`).
+
+## FR-15 API Attendance Device
+1. Endpoint register kartu RFID ke user.
+2. Endpoint tap attendance:
+   - unknown card,
+   - check-in/check-out,
+   - cooldown,
+   - already_done.
+
+## FR-16 Chatbot API (Ollama)
+1. Endpoint chat menerima message + optional history + role context.
+2. Endpoint menu mengembalikan menu aktif per kategori.
+3. Endpoint health mengembalikan status chatbot dan reachability Ollama.
+4. Chatbot harus mendukung function/tool call untuk best seller, rekomendasi cuaca, detail menu, promo, meja, dan stok (khusus role tertentu).
+
+## FR-17 Multi-language UI (Frontend)
+1. Dashboard layout, POS, dan Kitchen memiliki language switcher ID/EN berbasis localStorage.
+2. Perubahan bahasa tidak mengubah data backend.
+
+---
+
+## 4. Kebutuhan Non-Fungsional
+
+## NFR-01 Keamanan
+- Password harus hashed.
+- Endpoint sensitif harus dibatasi middleware auth/role.
+- Validasi request wajib untuk form dan endpoint API.
+
+## NFR-02 Performa
+- Halaman utama operasional (POS/Kitchen/Public Menu) harus tetap responsif untuk trafik harian kafe.
+- Integrasi eksternal (Midtrans/Ollama) harus punya fallback/error handling.
+
+## NFR-03 Reliabilitas
+- Deduksi/restock stok harus konsisten pada transaksi, void, refund, dan perubahan status dapur.
+- Shift reconciliation harus deterministik (starting + in - out).
+
+## NFR-04 Maintainability
+- Logika transaksi inti harus terpusat di `TransactionService`.
+- Cart publik harus terisolasi di `CartService`.
+- Dokumentasi harus sinkron dengan route/controller/migration.
+
+## NFR-05 Usability
+- UI modern, mobile-friendly untuk public ordering.
+- Workflow kasir dan dapur harus minim klik dan jelas statusnya.
+
+## NFR-06 Integrasi
+- Midtrans sandbox/production dapat dikonfigurasi via env.
+- Ollama URL/model dapat diganti via env.
+- Attendance device dapat akses endpoint API dengan payload JSON.
+
+---
+
+## 5. Kebutuhan Data (Ringkas)
+
+Entitas utama:
+- `users`, `roles`, `shifts`, `attendance_logs`
+- `categories`, `products`, `product_variants`, `product_addons`
+- `ingredients`, `ingredient_batches`, `recipes`, `recipe_details`
+- `tables`, `discounts`, `settings`
+- `transactions`, `transaction_details`, `transaction_detail_addons`
+- `payments`, `bookings`, `refunds`, `cash_drawers`, `cash_drawer_logs`
+
+---
+
+## 6. Batasan, Risiko, dan Catatan Teknis Saat Ini
+
+1. **Perbedaan istilah takeaway**:
+   - request/public menggunakan `takeaway`,
+   - internal transaksi menggunakan enum `take_away`.
+2. **Status booking**:
+   - controller aktif memakai `pending/approved/rejected`.
+   - ada migration legacy yang sempat memetakan ke `confirmed/cancelled`.
+3. **Status payment webhook**:
+   - migration payment enum: `pending/paid/failed/expired`.
+   - webhook pernah mengisi `success` pada sebagian alur legacy.
+
+---
+
+## 7. Out of Scope (Versi Saat Ini)
+
+- Integrasi MQTT attendance end-to-end di backend (saat ini masih endpoint HTTP + contoh firmware).
+- Engine rekomendasi ML penuh (saat ini rule/tool-based).
+- Integrasi multi-outlet dan multi-branch.
+
+---
+
+## 8. Kriteria Penerimaan Umum
+
+1. Semua role dapat mengakses modul sesuai haknya.
+2. Proses POS -> Kitchen -> Payment -> Report berjalan tanpa inkonsistensi status.
+3. QR order dapat diproses dari menu sampai order status.
+4. Refund dan void memulihkan stok sesuai aturan yang berlaku.
+5. Dokumen ini konsisten dengan route, controller, service, dan skema DB saat ini.

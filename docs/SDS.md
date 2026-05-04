@@ -1,187 +1,278 @@
-# 🏗️ Software Design Specification (SDS)
+# Software Design Specification (SDS)
 
-## 1. System Architecture
-The system is designed using a modular architecture:
+## 1. Arsitektur Sistem
 
-- **Frontend:** Server-rendered views (Blade, simple HTML/Tailwind) for faster development.
-- **Backend (Laravel 12):** REST API and business logic processing.
-- **Database (MySQL):** persistent storage for transactions, stock, recipes, and attendance.
-- **Payment Integration:** Midtrans Sandbox Simulation.
-- **Future IoT Attendance:** MQTT-based integration.
+## 1.1 Gaya Arsitektur
+Keshir menggunakan arsitektur **Laravel MVC + Service Layer**:
 
----
+- **Presentation Layer**: Blade views (`resources/views`)
+- **Application Layer**: Controllers (`app/Http/Controllers`)
+- **Domain/Business Layer**: Services (`app/Services`)
+- **Persistence Layer**: Eloquent Models + Migrations
+- **Integration Layer**: Midtrans, Ollama, Attendance Device API
 
-## 2. Module Design
+## 1.2 Komponen Inti
 
-### 2.1 Authentication Module
-- Handles login validation
-- Role-based authorization
-
-### 2.2 Attendance Module
-- Check-in/check-out functions
-- Shift schedule validation
-- **Dev Phase:** Temporary web route (`/absencetemp`) with user dropdown
-- **Future Phase:** Integration via IoT MQTT device
-
-### 2.3 POS Module
-- Order creation & Table Assignment
-- Cart management
-- Checkout process (Cash Modal / Digital)
-- Supports **Open Bill** (Save unpaid transactions)
-- Receipt & Billing statement generation
-- **Cash Drawer & Shift Management** (Open/Close shifts, log Cash IN/OUT)
-- **Shift Sales Log** (View detailed transactions for the active shift)
-
-### 2.4 Product/Menu Module
-- CRUD menu items
-- Tagging for filters (spicy, vegetarian, recommended)
-
-### 2.5 Inventory Module
-- Ingredient stock management (Batch-based)
-- Stock in/out logs with **Expiry Date** tracking
-- Low stock & Expiry alert system
-
-### 2.6 Recipe Module (Core Feature)
-- Recipe creation per menu item (and per Variant if applicable)
-- Recipe detail mapping product → ingredients → quantity
-
-### 2.6B Kitchen Dashboard Module (NEW)
-- Dedicated UI for Kitchen Staff
-- Displays active tickets (Dine Now & Approved Bookings)
-- Shows item Variants, Add-ons, and Notes
-- Ability to update item status (e.g., Pending, In Progress, Done)
-- Sends status updates back to the POS/Cashier view
-
-### 2.7 Booking & Kitchen Flow Module
-- **Dine Now:** Orders go directly to Kitchen Display and immediately mark the table as occupied.
-- **Booking:** Booking created after payment confirmation (QR) or saved as Open Bill (POS).
-- Bookings route to the Cashier's Booking View for approval (`/pos/bookings`).
-- **Table Locking:** Validates Table availability. When booking is pending or confirmed, the table remains locked. Table is freed when booking is completed or cancelled.
-
-### 2.8 Payment Module
-- Midtrans sandbox payment simulation
-- Payment status update handler
-
-### 2.9 AI Recommendation Module (Rule-Based)
-- Rule-based engine using:
-  - weather conditions
-  - best-selling menu data
-- Output recommendations shown on customer menu page and admin dashboard
+| Komponen | Lokasi | Tanggung Jawab |
+|---|---|---|
+| Routing | `routes/web.php`, `routes/api.php` | Mapping endpoint ke controller |
+| Auth + Gate | middleware `attendance`, `role` | Validasi akses user |
+| Transaksi inti | `TransactionService` | open bill, add/remove item, checkout, FIFO, restock |
+| Cart publik | `CartService` | cart session publik (QR customer) |
+| Payment gateway | `MidtransWebhookController`, `PosController`, `CheckoutController` | snap token + webhook sync |
+| AI chatbot | `ChatbotController`, `OllamaChatService` | chat, tools, menu data, health |
 
 ---
 
-## 3. Database Design (High-Level)
+## 2. Desain Modul
 
-### users
-- id, name, username, password_hash, role_id
+## 2.1 Authentication & Authorization
+- `Auth\LoginController`:
+  - login username/password,
+  - attendance check non-owner,
+  - role-based redirect,
+  - warning shift cashier.
+- `CheckRole` middleware:
+  - validasi user role dari relasi `user->role->name`.
 
-### roles
-- id, role_name
+## 2.2 Attendance Module
+- `AttendanceController`:
+  - `index()` halaman absensi sementara,
+  - `checkIn()` dan `checkOut()` manual,
+  - `management()` statistik dan history,
+  - `resetCheckout()` dan `destroy()`.
+- `CheckAttendance` middleware:
+  - block user yang belum check-in / sudah check-out hari ini.
 
-### tables (NEW)
-- id, table_number, capacity, status (available/occupied/booked)
+## 2.3 Shift & Cash Drawer Module
+- `ShiftController`:
+  - CRUD shift, assign default shift user.
+- `CashDrawerController`:
+  - open shift,
+  - close shift (reconciliation),
+  - shift detail logs,
+  - shift sales list.
 
-### products
-- id, name, base_price, category, description, photo_url, tags
+## 2.4 Master Data Module
+- Category, Product, Variant, Addon, Ingredient, Batch, Recipe, Table, Discount, Setting.
+- Product support:
+  - foto multiple (JSON),
+  - variant/addon sync replace mode,
+  - active flag.
+- Ingredient stock:
+  - base unit + optional pack conversion (`content_per_pack`).
 
-### product_variants (NEW)
-- id, product_id, variant_name (e.g., "Large", "Hot"), additional_price
+## 2.5 POS Module
+- `PosController`:
+  - POS dashboard & open bill list,
+  - create bill, add/remove item,
+  - void bill,
+  - checkout cash/digital,
+  - digital payment page + confirm,
+  - receipt,
+  - booking review,
+  - table clearance,
+  - confirm cash order dari QR.
 
-### product_addons (NEW)
-- id, product_id, addon_name (e.g., "Extra Shot"), price
+## 2.6 Public QR Ordering Module
+- `PublicMenuController`:
+  - menu, cart, checkout form, order history.
+- `CheckoutController`:
+  - proses checkout publik (dine_in/takeaway/booking),
+  - generate Midtrans Snap,
+  - handle cash pending,
+  - booking payment flow,
+  - order status sync.
 
-### discounts (NEW)
-- id, name, type (percentage/nominal), value, is_active
+## 2.7 Kitchen Module
+- `KitchenController`:
+  - active ticket feed,
+  - update item status,
+  - mark all done.
+- Integrasi FIFO:
+  - deduksi stok dipicu saat status item masuk `in_progress` (POS),
+  - atau saat pembayaran sukses untuk alur QR.
 
-### settings (NEW - for Tax & Service Charge)
-- id, setting_key (e.g., 'tax_rate', 'service_charge_rate', 'tax_enabled'), setting_value
+## 2.8 Refund & Reporting Module
+- `RefundController`:
+  - create/store refund pada transaksi paid,
+  - restock + table release + cash out log.
+- `ReportController`:
+  - daily summary,
+  - best-selling analytics.
 
-### ingredients
-- id, name, total_stock, unit, minimum_stock
+## 2.9 AI Chatbot Module
+- `ChatbotController`:
+  - `/api/v1/chatbot/message`
+  - `/api/v1/chatbot/menu`
+  - `/api/v1/chatbot/health`
+- `OllamaChatService`:
+  - call Ollama API,
+  - role-aware prompt,
+  - function/tool call execution (best seller, weather recommendation, menu detail, discount, table, stock).
 
-### ingredient_batches (NEW for FIFO & Expiry)
-- id, ingredient_id, stock, expiry_date, purchase_price, created_at
-
-### recipes
-- id, product_id
-
-### recipe_details
-- id, recipe_id, ingredient_id, quantity
-
-### transactions
-- id, order_type, customer_name, phone, table_no, people_count, booking_time, subtotal, discount_total, tax_total, service_total, grand_total, payment_status (open/paid/void), payment_method
-
-### transaction_details
-- id, transaction_id, product_id, product_variant_id (nullable), qty, price, notes (Add-ons/Special requests), status (pending/in_progress/done)
-
-### transaction_detail_addons (NEW)
-- id, transaction_detail_id, product_addon_id, price
-
-### payments
-- id, transaction_id, method, status, midtrans_reference
-
-### refunds (NEW)
-- id, transaction_id, amount, reason, authorized_by, created_at
-
-### cash_drawers (NEW)
-- id, user_id, opened_at, closed_at, starting_cash, ending_cash, expected_ending_cash, status (open/closed)
-
-### cash_drawer_logs (NEW)
-- id, cash_drawer_id, type (in/out), amount, description, transaction_id (nullable)
-
-### bookings
-- id, transaction_id, booking_time, status, approved_by_cashier
-
-### attendance_logs
-- id, user_id, date, check_in, check_out, source
+## 2.10 Attendance Device API Module
+- `AttendanceDeviceController`:
+  - register RFID card,
+  - tap endpoint untuk check-in/check-out/cooldown.
 
 ---
 
-## 4. System Workflow Design
+## 3. Desain Data
 
-### 4.1 Staff Login Workflow
-1. Staff submits login credentials
-2. System checks role
-3. If role != Owner:
-   - verify attendance check-in for current day
-   - deny login if not checked-in
+## 3.1 Entitas & Relasi Kunci
 
-### 4.2 Customer QR Ordering Workflow
-1. Customer scans QR & browses menu
-2. Customer selects items, chooses Variants/Add-ons, adds Notes
-3. Customer adds items to cart & proceeds to checkout
-4. Customer selects Dine Now or Booking and fills the form
-5. System displays Subtotal + Tax + Service Charge = Grand Total
-6. Customer completes payment via Midtrans
-7. If payment is confirmed → transaction saved, order routed to Kitchen Dashboard
+| Entitas | Relasi Utama |
+|---|---|
+| `roles` | 1..* ke `users` |
+| `users` | *..1 ke `roles`, *..1 ke `shifts` (default), 1..* ke attendance/cash_drawers |
+| `transactions` | *..1 ke table/cashier/discount/cash_drawer, 1..* ke details, 1..1 ke payment/booking |
+| `transaction_details` | *..1 ke transaction/product/variant, 1..* ke detail_addons |
+| `products` | *..1 ke categories, 1..* ke variants/addons, 1..1 ke recipe |
+| `recipes` | 1..* ke recipe_details |
+| `ingredients` | 1..* ke ingredient_batches |
+| `cash_drawers` | 1..* ke cash_drawer_logs |
+| `bookings` | *..1 ke transactions |
+| `refunds` | *..1 ke transactions |
 
-### 4.3 Cashier POS Workflow (Open Bill)
-1. Cashier creates order, selects Variants/Add-ons, inputs customer name & table number
-2. Cashier saves order as **Open Bill**
-3. Order immediately routes to Kitchen Display
-4. Staff updates ticket status in Kitchen Dashboard
-5. Later, Customer pays → System calculates Tax/Service/Discount → Cashier processes payment (Cash modal / Digital)
-6. Transaction status updated from Open to Paid
+## 3.2 Kolom Penting
 
-### 4.4 Inventory Deduction Workflow (FIFO)
-1. Order confirmed (or paid, depending on config)
-2. System loads recipe data
-3. System finds oldest `ingredient_batches` (closest expiry date)
-4. System deducts stock from batch(es) until required quantity is met
-5. System logs stock-out transaction
+- `transactions.order_type`: `dine_in`, `take_away`, `booking`
+- `transactions.source`: `pos`, `qr`
+- `transactions.payment_status`: `open`, `paid`, `void`
+- `transaction_details.status`: `pending`, `in_progress`, `done`, `cancelled`
+- `tables.status`: `available`, `occupied`, `booked`
+- `cash_drawers.status`: `open`, `closed`
+- `attendance_logs.source`: `web`, `iot`
+- `bookings.status`: saat ini aktif dipakai controller `pending`, `approved`, `rejected`
 
-### 4.5 Booking & Kitchen Workflow
-1. Direct Order/Dine Now gets pushed to Kitchen Display instantly
-2. Booking order gets pushed to Cashier Booking View (Pending)
-3. Cashier approves booking
-4. When booking time nears, order gets pushed to Kitchen Display
+---
 
-### 4.6 Cash Drawer & Daily Closing Workflow
-1. **Shift Start:** Cashier logs in and opens Cash Drawer by inputting Starting Cash.
-2. **During Shift:** Cash payments automatically log as "Cash IN".
-3. **Refund/Void:** If a paid cash transaction is refunded, it logs as "Cash OUT".
-4. **Shift End:** Cashier initiates End of Day closing.
-5. System checks for unresolved **Open Bills** (must be paid or voided).
-6. Cashier inputs physical Ending Cash; system compares with expected cash and logs discrepancy.
-7. Staff reconciles system ingredient stock vs physical stock.
-8. System generates daily summary report (Sales, Taxes, Discounts, Refunds, Cash Drawer status).
+## 4. Desain Alur Sistem (Sequence Ringkas)
+
+## 4.1 Login Staff
+1. User kirim username/password.
+2. Auth sukses.
+3. Jika bukan owner -> cek attendance hari ini.
+4. Jika belum check-in, login ditolak.
+5. Middleware attendance menjaga akses selama sesi.
+
+## 4.2 POS Open Bill
+1. Cashier membuat bill (`createOpenBill`).
+2. Item ditambahkan (`addItemToBill`).
+3. Sistem hitung subtotal/discount/tax/service/grand total.
+4. Dapur menerima item status pending.
+
+## 4.3 Kitchen Processing
+1. Kitchen ubah pending -> in_progress.
+2. `TransactionService::deductIngredients()` menjalankan FIFO deduction.
+3. Kitchen ubah in_progress -> done.
+
+## 4.4 Checkout Cash POS
+1. Kasir pilih cash + amount paid.
+2. Validasi amount >= total.
+3. Payment paid.
+4. Transaction paid.
+5. Cash drawer log `in` dibuat.
+
+## 4.5 Checkout Digital (POS/QR)
+1. Sistem generate Midtrans order id + snap token.
+2. Payment status pending.
+3. Webhook/status sync update payment & transaction.
+4. Jika success -> paid (+ deduksi stok untuk flow QR).
+5. Jika gagal/expired -> gagal, QR open order dapat di-void.
+
+## 4.6 Booking
+1. Customer submit booking (status pending).
+2. Kasir approve/reject di POS booking view.
+3. Table lock mengikuti status booking.
+4. Booking approved dapat lanjut pembayaran.
+
+## 4.7 Refund
+1. Refund hanya transaksi paid.
+2. Sistem simpan refund log.
+3. Restock ingredient untuk item in_progress/done.
+4. Mark transaction void.
+5. Jika payment method cash -> cash drawer log `out`.
+
+---
+
+## 5. Route Design
+
+## 5.1 Web Routes (high-level)
+- Public: `/menu`, `/cart`, `/checkout`, `/order/{transaction}`, `/my-orders`
+- Auth: `/login`, `/logout`
+- Attendance temp: `/absencetemp`
+- Dashboard owner/manager: master data, attendance management, shifts, reports
+- POS: `/pos/*`
+- Kitchen: `/kitchen/*`
+- Cash drawer: `/cash-drawer/*`
+- Refund: `/refunds/*`
+
+## 5.2 API Routes
+- `POST /api/attendance/register-card`
+- `POST /api/attendance/tap`
+- `POST /api/midtrans/webhook`
+- `POST /api/v1/chatbot/message`
+- `GET /api/v1/chatbot/menu`
+- `GET /api/v1/chatbot/health`
+
+---
+
+## 6. Middleware & Keamanan
+
+## 6.1 Middleware Chain
+- `auth` -> memastikan user login.
+- `attendance` -> memastikan status attendance valid.
+- `role:*` -> role-based access.
+
+## 6.2 Security Controls
+- Password hashing via cast `hashed`.
+- Server-side request validation di controller.
+- CSRF protection default Laravel untuk web forms.
+- Payment webhook diproses via Midtrans Notification.
+
+---
+
+## 7. Integrasi Eksternal
+
+## 7.1 Midtrans
+- Config: `config/midtrans.php`, env `MIDTRANS_*`
+- Generate snap token di POS/Checkout controller
+- Status callback via webhook controller
+
+## 7.2 Ollama
+- Config: `services.ollama.url`, `services.ollama.model`
+- API call: `POST {OLLAMA_URL}/api/chat`
+- Timeout dan fallback mode tanpa tools tersedia.
+
+## 7.3 Attendance Device
+- API HTTP untuk register/tap.
+- Contoh firmware: `docs/esp32_attendance.ino`.
+
+---
+
+## 8. Desain Frontend
+
+- Layout modern biru-putih untuk dashboard/POS/kitchen/public pages.
+- Language switcher ID/EN frontend-only via localStorage (`keshir_lang`).
+- Kitchen display auto-refresh periodik.
+- Komponen UI utama:
+  - stat cards,
+  - bill cards,
+  - ticket cards,
+  - custom pagination,
+  - responsive public menu/cart/checkout.
+
+---
+
+## 9. Known Design Debt / Konsistensi yang Perlu Dijaga
+
+1. **Enum/Status Booking**:
+   - migration legacy pernah mengubah label, controller masih memakai `approved/rejected`.
+2. **Enum/Status Payment**:
+   - webhook legacy sempat menulis `success`, sementara migration enum mendefinisikan `paid`.
+3. **Terminologi Takeaway**:
+   - input `takeaway` di publik dipetakan ke `take_away` internal.
+
+Dokumentasi ini menyesuaikan implementasi aktual agar tim dapat mengelola technical debt secara terarah.
