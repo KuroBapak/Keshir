@@ -1501,12 +1501,18 @@
             <!-- Products -->
             <div class="product-grid" id="productGrid">
                 @foreach($products as $p)
-                <div class="product-card" data-cat="{{ $p->category_id }}" data-name="{{ strtolower($p->name) }}" onclick='openProductModal(@json($p))'>
+                @php
+                    $isOutOfStock = $p->is_out_of_stock;
+                @endphp
+                <div class="product-card" data-cat="{{ $p->category_id }}" data-name="{{ strtolower($p->name) }}" {!! $isOutOfStock ? 'style="opacity: 0.6; cursor: not-allowed;"' : 'onclick="openProductModal('.htmlspecialchars(json_encode($p)).')"' !!}>
                     <div class="product-image">
                         @if(is_array($p->photos) && count($p->photos) > 0)
                             <img src="{{ asset('storage/' . $p->photos[0]) }}" alt="{{ $p->name }}">
                         @else
                             <span style="font-size:3rem; opacity:0.1">🍽️</span>
+                        @endif
+                        @if($isOutOfStock)
+                            <div style="position:absolute; top:8px; right:8px; background:var(--danger); color:white; padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">Habis</div>
                         @endif
                     </div>
                     <div class="product-info">
@@ -1520,7 +1526,7 @@
                             </div>
                         @endif
                     </div>
-                    <button class="add-btn">+</button>
+                    <button class="add-btn" {!! $isOutOfStock ? 'disabled style="background:var(--text-muted);"' : '' !!}>+</button>
                 </div>
                 @endforeach
             </div>
@@ -1842,6 +1848,7 @@
                 bookingTimeGroup.style.display = 'none';
                 peopleCountGroup.style.display = 'none';
                 bookingTime.required = false;
+                bookingTime.value = '';
             } else if (type === 'takeaway') {
                 btnTakeAway.classList.add('active');
                 mejaGroup.style.display = 'none';
@@ -1850,6 +1857,7 @@
                 bookingTimeGroup.style.display = 'none';
                 peopleCountGroup.style.display = 'none';
                 bookingTime.required = false;
+                bookingTime.value = '';
             } else if (type === 'booking') {
                 btnBooking.classList.add('active');
                 mejaGroup.style.display = 'block';
@@ -1857,10 +1865,11 @@
                 bookingTimeGroup.style.display = 'block';
                 peopleCountGroup.style.display = 'block';
                 bookingTime.required = true;
-                // Set min booking time to now + 1 hour
+                // Set min booking time to now + 1 hour (using local timezone, not UTC)
                 const now = new Date();
                 now.setHours(now.getHours() + 1);
-                const minTime = now.toISOString().slice(0, 16);
+                const pad = n => String(n).padStart(2, '0');
+                const minTime = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
                 bookingTime.min = minTime;
                 if (!bookingTime.value) bookingTime.value = minTime;
             }
@@ -2058,8 +2067,29 @@
                 },
                 body: formData
             })
-            .then(r => r.json())
+            .then(r => {
+                if (r.status === 422) {
+                    // Validation error
+                    return r.json().then(data => {
+                        let errorMsg = '⚠️ Kesalahan input:\n';
+                        if (data.errors) {
+                            for (const key in data.errors) {
+                                errorMsg += `- ${data.errors[key][0]}\n`;
+                            }
+                        } else {
+                            errorMsg = data.message || 'Validasi gagal.';
+                        }
+                        alert(errorMsg);
+                        btnMidtrans.innerText = "MIDTRANS";
+                        btnMidtrans.disabled = false;
+                        return null;
+                    });
+                }
+                return r.json();
+            })
             .then(res => {
+                if (!res) return; // Validation error already handled
+
                 if (paymentMethod === 'tunai' && res.redirect_url) {
                      sessionStorage.clear();
                      window.location.href = res.redirect_url;

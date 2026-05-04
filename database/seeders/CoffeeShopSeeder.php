@@ -76,10 +76,19 @@ class CoffeeShopSeeder extends Seeder
 
         $ingredientModels = [];
         foreach ($ingredients as $data) {
-            $ingredientModels[$data['name']] = Ingredient::firstOrCreate(
+            $ing = Ingredient::firstOrCreate(
                 ['name' => $data['name']],
                 $data
             );
+            $ingredientModels[$data['name']] = $ing;
+
+            if ($ing->batches()->count() === 0) {
+                \App\Models\IngredientBatch::create([
+                    'ingredient_id' => $ing->id,
+                    'stock' => $ing->total_stock,
+                    'expiry_date' => \Illuminate\Support\Carbon::now()->addYears(1)->format('Y-m-d'),
+                ]);
+            }
         }
 
         // =====================

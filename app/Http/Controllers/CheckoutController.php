@@ -64,6 +64,11 @@ class CheckoutController extends Controller
             }
         }
 
+        // Strip booking fields when not in booking mode (prevents stale form values from triggering validation)
+        if ($request->input('order_type') !== 'booking') {
+            $request->merge(['booking_time' => null]);
+        }
+
         $request->validate([
             'order_type' => 'required|in:dine_in,takeaway,booking',
             'customer_name' => 'required|string|max:255',
@@ -71,6 +76,18 @@ class CheckoutController extends Controller
             'table_id' => 'required_if:order_type,dine_in,booking|nullable|exists:tables,id',
             'people_count' => 'required_if:order_type,dine_in,booking|nullable|integer|min:1',
             'booking_time' => 'required_if:order_type,booking|nullable|date|after:now',
+        ], [
+            'order_type.required' => 'Tipe pesanan wajib dipilih.',
+            'order_type.in' => 'Tipe pesanan tidak valid.',
+            'customer_name.required' => 'Nama pelanggan wajib diisi.',
+            'phone.required' => 'Nomor HP wajib diisi.',
+            'table_id.required_if' => 'Silakan pilih meja.',
+            'table_id.exists' => 'Meja yang dipilih tidak ditemukan.',
+            'people_count.required_if' => 'Jumlah orang wajib diisi.',
+            'people_count.min' => 'Jumlah orang minimal 1.',
+            'booking_time.required_if' => 'Waktu booking wajib diisi.',
+            'booking_time.date' => 'Format waktu booking tidak valid.',
+            'booking_time.after' => 'Waktu booking harus lebih dari waktu sekarang.',
         ]);
 
         // Validate table availability if not takeaway
@@ -94,8 +111,20 @@ class CheckoutController extends Controller
         $grandTotal = $subtotal + $taxTotal + $serviceTotal;
 
         // Build items payload for TransactionService (similar to POS)
+        // Also validate stock availability before creating transaction
         $items = [];
         foreach ($cart as $item) {
+            $product = \App\Models\Product::find($item['product_id']);
+            if ($product && !$product->checkAvailability($item['qty'])) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Stok bahan baku untuk menu ' . $product->name . ' tidak mencukupi.'
+                    ], 422);
+                }
+                return back()->with('error', 'Stok bahan baku untuk menu ' . $product->name . ' tidak mencukupi.');
+            }
+
             $items[] = [
                 'product_id' => $item['product_id'],
                 'product_variant_id' => $item['variant_id'],
@@ -139,7 +168,7 @@ class CheckoutController extends Controller
                     'status' => 'pending',
                 ]);
                 if ($tx->table_id && \Carbon\Carbon::parse($request->booking_time)->isToday()) {
-                    $tx->table->update(['status' => 'booked']);
+                    $tx->table->update(['status' => 'occupied']);
                 }
             } else if ($request->order_type === 'dine_in' && $request->table_id) {
                 // Reserve table immediately for dine-in

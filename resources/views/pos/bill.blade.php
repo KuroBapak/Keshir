@@ -331,10 +331,16 @@
 
                 <div class="product-grid">
                     @foreach($products as $p)
-                        <div class="product-card" data-cat="{{ $p->category_id }}" onclick="openAddModal({{ $p->id }})">
+                        @php
+                            $isOutOfStock = $p->is_out_of_stock;
+                        @endphp
+                        <div class="product-card" data-cat="{{ $p->category_id }}" {!! $isOutOfStock ? 'style="opacity: 0.6; cursor: not-allowed; position: relative;"' : 'onclick="openAddModal('.$p->id.')"' !!}>
                             <div class="name">{{ $p->name }}</div>
                             <div class="price">Rp {{ number_format($p->base_price, 0, ',', '.') }}</div>
                             @if($p->variants->count())<div class="variants">{{ $p->variants->count() }} varian tersedia</div>@endif
+                            @if($isOutOfStock)
+                                <div style="position:absolute; top:8px; right:8px; background:var(--danger); color:white; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold;">Habis</div>
+                            @endif
                         </div>
                     @endforeach
                 </div>

@@ -176,6 +176,11 @@ class PosController extends Controller
             'addon_ids.*' => 'exists:product_addons,id',
         ]);
 
+        $product = Product::findOrFail($request->product_id);
+        if (!$product->checkAvailability($request->qty)) {
+            return back()->with('error', 'Stok bahan baku tidak mencukupi untuk menu ini.');
+        }
+
         $this->transactionService->addItemToBill($transaction, $request->only([
             'product_id', 'product_variant_id', 'qty', 'notes', 'addon_ids',
         ]));
@@ -367,7 +372,7 @@ class PosController extends Controller
             // If booking is approved or pending, table stays booked ONLY IF it's for today
             if (in_array($newStatus, ['pending', 'approved'])) {
                 if ($booking->booking_time->isToday()) {
-                    $table->update(['status' => 'booked']);
+                    $table->update(['status' => 'occupied']);
                 }
             } 
             // If rejected, table is freed
@@ -394,7 +399,8 @@ class PosController extends Controller
         // Get all tables ordered by number
         $tables = \App\Models\Table::orderBy('table_number')->get();
         // Load active transactions for occupied tables to show who is sitting there
-        $activeDineIn = \App\Models\Transaction::where('order_type', 'dine_in')
+        // Including 'booking' since same-day bookings now occupy the table
+        $activeDineIn = \App\Models\Transaction::whereIn('order_type', ['dine_in', 'booking'])
             ->whereIn('payment_status', ['open', 'paid']) // Only show active ones
             ->get()
             ->keyBy('table_id');

@@ -406,9 +406,10 @@
     </div>
 
     <script>
-        // Set minimum date for booking (today)
+        // Set minimum date for booking (today, using local timezone)
         const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
+        const padD = n => String(n).padStart(2, '0');
+        const todayStr = `${today.getFullYear()}-${padD(today.getMonth()+1)}-${padD(today.getDate())}`;
         document.getElementById('inp-booking-date').setAttribute('min', todayStr);
 
         function toggleType() {

@@ -36,6 +36,17 @@ class DemoDataSeeder extends Seeder
         $ingAyam = Ingredient::firstOrCreate(['name' => 'Daging Ayam'], ['total_stock' => 3000, 'unit' => 'gram', 'minimum_stock' => 1000]);
         $ingNasi = Ingredient::firstOrCreate(['name' => 'Beras Putih'], ['total_stock' => 10000, 'unit' => 'gram', 'minimum_stock' => 2000]);
 
+        $ingredients = [$ingKopi, $ingSusu, $ingGulaAren, $ingSirupVanilla, $ingMatcha, $ingCokelat, $ingRoti, $ingKentang, $ingAyam, $ingNasi];
+        foreach ($ingredients as $ing) {
+            if ($ing->batches()->count() === 0) {
+                \App\Models\IngredientBatch::create([
+                    'ingredient_id' => $ing->id,
+                    'stock' => $ing->total_stock,
+                    'expiry_date' => \Illuminate\Support\Carbon::now()->addYears(1)->format('Y-m-d'),
+                ]);
+            }
+        }
+
         // 3. Products
         $products = [
             // Kopi

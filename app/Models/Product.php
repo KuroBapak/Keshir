@@ -42,4 +42,32 @@ class Product extends Model
     {
         return $this->hasOne(Recipe::class);
     }
+
+    /**
+     * Check if the product is out of stock based on its recipe ingredients.
+     */
+    public function getIsOutOfStockAttribute(): bool
+    {
+        return !$this->checkAvailability(1);
+    }
+
+    /**
+     * Check if there is enough stock for a given quantity.
+     */
+    public function checkAvailability(int $qty = 1): bool
+    {
+        $recipe = $this->recipe()->with('details.ingredient')->first();
+        if (!$recipe) {
+            return true; // If no recipe, assume available
+        }
+
+        foreach ($recipe->details as $detail) {
+            $required = $detail->quantity * $qty;
+            if (!$detail->ingredient || $detail->ingredient->total_stock < $required) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
