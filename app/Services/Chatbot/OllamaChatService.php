@@ -169,6 +169,7 @@ class OllamaChatService
             'model' => $this->model,
             'messages' => $messages,
             'stream' => false,
+            'think' => false,
         ];
 
         if (!empty($tools)) {
