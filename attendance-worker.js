@@ -35,7 +35,7 @@ client.on('message', async (topic, message) => {
         if (!payload.uid) return;
         
         // Use the local Laravel API or localhost
-        const apiUrl = 'http://127.0.0.1:8000/api/device/tap';
+        const apiUrl = 'http://127.0.0.1:8000/api/attendance/tap';
         
         const response = await axios.post(apiUrl, {
             uid: payload.uid,

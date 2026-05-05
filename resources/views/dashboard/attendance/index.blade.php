@@ -876,9 +876,8 @@
     client.on('connect', function () {
         statusBadge.className = 'badge badge-success';
         statusBadge.innerHTML = '🟢 MQTT Terhubung';
-        // Subscribe to BOTH event (registration) and tap (daily attendance)
+        // Subscribe to event (registration) ONLY
         client.subscribe('keshir/attendance/+/up/event');
-        client.subscribe('keshir/attendance/+/up/tap');
         
         // Listen to responses and commands to trigger auto-refresh on all dashboard clients
         client.subscribe('keshir/attendance/+/down/response');
@@ -937,27 +936,8 @@
             }
 
             // --- 2. MODE ABSENSI HARIAN (TAP) ---
-            else if (topicType === 'tap' && data.uid) {
-                // Ignore daily taps if we are currently trying to register a card
-                if (currentRegUserId) return;
-
-                fetch('{{ url("/api/attendance/tap") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    body: JSON.stringify({ uid: data.uid, device_id: targetDevice })
-                })
-                .then(res => res.json())
-                .then(response => {
-                    // response.status could be 'check_in', 'check_out', 'already_done', 'cooldown', 'unknown_card'
-                    client.publish(`keshir/attendance/${targetDevice}/down/response`, JSON.stringify(response), { qos: 0 });
-                    
-                    // If it's a valid check-in/out, we might want to silently reload the page after a brief delay to update the UI
-                    if (response.status === 'check_in' || response.status === 'check_out') {
-                        setTimeout(() => location.reload(), 2000);
-                    }
-                })
-                .catch(err => console.error('Gagal memproses tap absensi:', err));
-            }
+            // Di-handle oleh background worker (attendance-worker.js)
+            // Dashboard hanya menunggu response dari worker via MQTT ('down/response') yang sudah ditangkap di atas (AUTO REFRESH).
 
         } catch (e) {
             console.error('MQTT Parse Error', e);
