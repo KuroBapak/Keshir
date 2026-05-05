@@ -179,6 +179,11 @@
                         <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
                             <a href="{{ route('ingredients.show', $ing) }}" class="btn btn-xs btn-outline">👁️ Detail</a>
                             <a href="{{ route('ingredients.edit', $ing) }}" class="btn btn-xs btn-outline">✏️ Edit</a>
+                            <form action="{{ route('ingredients.destroy', $ing) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus bahan baku ini?');" style="display: inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-xs btn-outline" style="color: var(--danger); border-color: var(--danger);">🗑️ Hapus</button>
+                            </form>
                         </div>
                     </td>
                 </tr>

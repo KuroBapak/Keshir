@@ -58,7 +58,7 @@ class Product extends Model
     {
         $recipe = $this->recipe()->with('details.ingredient')->first();
         if (!$recipe) {
-            return true; // If no recipe, assume available
+            return false; // If no recipe, cannot be made
         }
 
         foreach ($recipe->details as $detail) {

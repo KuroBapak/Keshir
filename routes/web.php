@@ -78,12 +78,13 @@ Route::middleware(['auth', 'attendance'])->group(function () {
         Route::delete('products/{product}/addons/{addon}', [ProductAddonController::class, 'destroy'])->name('products.addons.destroy');
         Route::get('products/{product}/recipe', [RecipeController::class, 'edit'])->name('products.recipe.edit');
         Route::put('products/{product}/recipe', [RecipeController::class, 'update'])->name('products.recipe.update');
+        Route::delete('products/{product}/recipe', [RecipeController::class, 'destroy'])->name('products.recipe.destroy');
 
         // Recipes
         Route::get('recipes', [RecipeController::class, 'index'])->name('recipes.index');
 
         // Inventory
-        Route::resource('ingredients', IngredientController::class)->except(['destroy']);
+        Route::resource('ingredients', IngredientController::class);
         Route::post('ingredients/{ingredient}/batches', [IngredientController::class, 'addBatch'])->name('ingredients.batches.store');
 
         // Tables, Discounts, Settings

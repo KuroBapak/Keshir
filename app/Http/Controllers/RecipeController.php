@@ -56,4 +56,15 @@ class RecipeController extends Controller
 
         return redirect()->route('products.show', $product)->with('success', 'Resep berhasil disimpan.');
     }
+
+    /**
+     * Delete the recipe for a product.
+     */
+    public function destroy(Product $product)
+    {
+        if ($product->recipe) {
+            $product->recipe->delete();
+        }
+        return back()->with('success', 'Resep berhasil dihapus.');
+    }
 }

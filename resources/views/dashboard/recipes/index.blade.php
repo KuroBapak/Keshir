@@ -19,7 +19,16 @@
                     @endif
                 </td>
                 <td>
-                    <a href="{{ route('products.recipe.edit', $p) }}" class="btn btn-xs btn-primary">{{ $p->recipe ? '✏️ Edit Resep' : '+ Buat Resep' }}</a>
+                    <div style="display: flex; gap: 0.35rem;">
+                        <a href="{{ route('products.recipe.edit', $p) }}" class="btn btn-xs btn-primary">{{ $p->recipe ? '✏️ Edit Resep' : '+ Buat Resep' }}</a>
+                        @if($p->recipe)
+                            <form action="{{ route('products.recipe.destroy', $p) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus resep untuk produk ini?');" style="display: inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-xs btn-outline" style="color: var(--danger); border-color: var(--danger);">🗑️ Hapus Resep</button>
+                            </form>
+                        @endif
+                    </div>
                 </td>
             </tr>
             @empty

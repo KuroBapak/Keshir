@@ -92,4 +92,18 @@ class IngredientController extends Controller
 
         return back()->with('success', 'Stok batch berhasil ditambahkan.');
     }
+
+    public function destroy(Ingredient $ingredient)
+    {
+        try {
+            $ingredient->delete();
+            return redirect()->route('ingredients.index')->with('success', 'Bahan baku berhasil dihapus.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Check if it's a foreign key constraint violation
+            if ($e->getCode() == 23000) {
+                return redirect()->route('ingredients.index')->with('error', 'Bahan baku tidak dapat dihapus karena sedang digunakan dalam resep.');
+            }
+            return redirect()->route('ingredients.index')->with('error', 'Terjadi kesalahan saat menghapus bahan baku.');
+        }
+    }
 }
