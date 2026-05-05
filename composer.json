@@ -10,7 +10,8 @@
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "midtrans/midtrans-php": "^2.6",
-        "php-mqtt/client": "^2.3"
+        "php-mqtt/client": "^2.3",
+        "workerman/mqtt": "^2.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
