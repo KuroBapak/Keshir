@@ -155,16 +155,19 @@ class TransactionService
                 }
             }
 
-            // Create payment
+            // Create or update payment (preventing duplicates for public menu orders)
             $method = $paymentData['method'] ?? 'cash';
-            $payment = $transaction->payment()->create([
-                'method' => $method,
-                'status' => $method === 'cash' ? 'paid' : 'pending',
-                'amount_paid' => $paymentData['amount_paid'] ?? $transaction->grand_total,
-                'change_amount' => $method === 'cash'
-                    ? max(0, ($paymentData['amount_paid'] ?? $transaction->grand_total) - $transaction->grand_total)
-                    : 0,
-            ]);
+            $payment = $transaction->payment()->updateOrCreate(
+                ['transaction_id' => $transaction->id],
+                [
+                    'method' => $method,
+                    'status' => $method === 'cash' ? 'paid' : 'pending',
+                    'amount_paid' => $paymentData['amount_paid'] ?? $transaction->grand_total,
+                    'change_amount' => $method === 'cash'
+                        ? max(0, ($paymentData['amount_paid'] ?? $transaction->grand_total) - $transaction->grand_total)
+                        : 0,
+                ]
+            );
 
             // Update transaction status
             $transaction->update([

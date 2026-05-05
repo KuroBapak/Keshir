@@ -24,10 +24,8 @@ class PublicMenuController extends Controller
      */
     private function isShopOpen(): bool
     {
-        $hasOpenShift = CashDrawer::where('status', 'open')->exists();
-        $hasCheckedInStaff = \App\Models\AttendanceLog::whereNull('check_out')->exists();
-        
-        return $hasOpenShift && $hasCheckedInStaff;
+        // Any open shift (e.g., from owner or cashier) opens the shop globally
+        return CashDrawer::where('status', 'open')->exists();
     }
 
     /**

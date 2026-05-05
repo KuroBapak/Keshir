@@ -137,22 +137,35 @@
         }
 
         /* Categories */
-        .category-row {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.75rem;
+        .category-scroll-wrapper {
+            position: relative;
             margin-bottom: 2rem;
-            padding-bottom: 0.5rem;
             flex-shrink: 0;
         }
+        .category-row {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            scroll-snap-type: x mandatory;
+            gap: 0.75rem;
+            padding-bottom: 0.5rem;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .category-row::-webkit-scrollbar {
+            display: none;
+        }
+
 
         .category-card {
             background: var(--white);
             border: 2px solid var(--border-color);
             border-radius: 12px;
             padding: 0.5rem 1.5rem 0.5rem 0.5rem;
-            width: 100%;
-            min-width: 0;
+            flex: 0 0 calc(33.333% - 0.5rem);
+            scroll-snap-align: start;
+            min-width: 200px;
             display: flex;
             flex-direction: row;
             flex-wrap: nowrap;
@@ -1098,6 +1111,8 @@
                 border-width: 1px;
                 box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
                 background: rgba(255,255,255,0.95);
+                flex: 0 0 auto;
+                min-width: 120px;
             }
 
             .cat-img-box {
@@ -1463,37 +1478,41 @@
             </div>
 
             <!-- Categories -->
-            <div class="category-row">
-                <div class="category-card active" onclick="filterCategory('all')" id="cat-tab-all">
-                    <div class="cat-img-box">
-                        <div style="font-size:24px;">🍽️</div>
+            <div class="category-scroll-wrapper">
+
+                <div class="category-row" id="categoryRow">
+                    <div class="category-card active" onclick="filterCategory('all')" id="cat-tab-all">
+                        <div class="cat-img-box">
+                            <div style="font-size:24px;">🍽️</div>
+                        </div>
+                        <div class="cat-text">
+                            <div class="cat-name">Semua Menu</div>
+                            <div class="cat-items">{{ $products->count() }} items</div>
+                        </div>
                     </div>
-                    <div class="cat-text">
-                        <div class="cat-name">Semua Menu</div>
-                        <div class="cat-items">{{ $products->count() }} items</div>
+
+                    @foreach($categories as $cat)
+                    @php
+                        $catName = strtolower($cat->name);
+                        $icon = '🍽️';
+                        if (str_contains($catName, 'kopi') || str_contains($catName, 'coffee')) $icon = '☕';
+                        elseif (str_contains($catName, 'teh') || str_contains($catName, 'tea') || str_contains($catName, 'matcha')) $icon = '🍵';
+                        elseif (str_contains($catName, 'makanan') || str_contains($catName, 'nasi') || str_contains($catName, 'mie')) $icon = '🍛';
+                        elseif (str_contains($catName, 'cemilan') || str_contains($catName, 'snack') || str_contains($catName, 'pastry')) $icon = '🥐';
+                        elseif (str_contains($catName, 'minuman') || str_contains($catName, 'beverage')) $icon = '🥤';
+                    @endphp
+                    <div class="category-card" onclick="filterCategory({{ $cat->id }})" id="cat-tab-{{ $cat->id }}">
+                        <div class="cat-img-box">
+                            <div style="font-size:24px;">{{ $icon }}</div>
+                        </div>
+                        <div class="cat-text">
+                            <div class="cat-name">{{ strtoupper($cat->name) }}</div>
+                            <div class="cat-items">{{ $products->where('category_id', $cat->id)->count() }} items</div>
+                        </div>
                     </div>
+                    @endforeach
                 </div>
 
-                @foreach($categories as $cat)
-                @php
-                    $catName = strtolower($cat->name);
-                    $icon = '🍽️';
-                    if (str_contains($catName, 'kopi') || str_contains($catName, 'coffee')) $icon = '☕';
-                    elseif (str_contains($catName, 'teh') || str_contains($catName, 'tea') || str_contains($catName, 'matcha')) $icon = '🍵';
-                    elseif (str_contains($catName, 'makanan') || str_contains($catName, 'nasi') || str_contains($catName, 'mie')) $icon = '🍛';
-                    elseif (str_contains($catName, 'cemilan') || str_contains($catName, 'snack') || str_contains($catName, 'pastry')) $icon = '🥐';
-                    elseif (str_contains($catName, 'minuman') || str_contains($catName, 'beverage')) $icon = '🥤';
-                @endphp
-                <div class="category-card" onclick="filterCategory({{ $cat->id }})" id="cat-tab-{{ $cat->id }}">
-                    <div class="cat-img-box">
-                        <div style="font-size:24px;">{{ $icon }}</div>
-                    </div>
-                    <div class="cat-text">
-                        <div class="cat-name">{{ strtoupper($cat->name) }}</div>
-                        <div class="cat-items">{{ $products->where('category_id', $cat->id)->count() }} items</div>
-                    </div>
-                </div>
-                @endforeach
             </div>
 
             <!-- Products -->
@@ -1821,6 +1840,40 @@
                 c.style.display = match ? 'block' : 'none';
             });
         }
+
+        // Category Scroll Navigation
+        function scrollCategories(direction) {
+            const row = document.getElementById('categoryRow');
+            if (!row) return;
+            const cardWidth = row.querySelector('.category-card')?.offsetWidth || 250;
+            row.scrollBy({ left: direction * (cardWidth + 12) * 2, behavior: 'smooth' });
+        }
+
+        function updateCatScrollArrows() {
+            const row = document.getElementById('categoryRow');
+            const leftBtn = document.getElementById('catScrollLeft');
+            const rightBtn = document.getElementById('catScrollRight');
+            if (!row || !leftBtn || !rightBtn) return;
+
+            leftBtn.classList.toggle('hidden', row.scrollLeft <= 5);
+            rightBtn.classList.toggle('hidden', row.scrollLeft + row.clientWidth >= row.scrollWidth - 5);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const row = document.getElementById('categoryRow');
+            if (row) {
+                row.addEventListener('scroll', updateCatScrollArrows);
+                // Enable mouse wheel horizontal scroll
+                row.addEventListener('wheel', function(e) {
+                    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                        e.preventDefault();
+                        row.scrollBy({ left: e.deltaY, behavior: 'auto' });
+                    }
+                }, { passive: false });
+                // Initial arrow state
+                updateCatScrollArrows();
+            }
+        });
 
         // Toggle Dine In / Take Away / Booking
         function setOrderType(type) {

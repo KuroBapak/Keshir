@@ -24,6 +24,7 @@ class CoffeeShopSeeder extends Seeder
             'Frappe & Blended',
             'Snacks',
             'Pastry',
+            'Makanan Utama',
         ];
 
         foreach ($categories as $name) {
@@ -72,6 +73,16 @@ class CoffeeShopSeeder extends Seeder
             ['name' => 'French Fries', 'unit' => 'gram', 'total_stock' => 5000, 'minimum_stock' => 500],
             ['name' => 'Cheese', 'unit' => 'gram', 'total_stock' => 2000, 'minimum_stock' => 200],
             ['name' => 'Ham', 'unit' => 'gram', 'total_stock' => 1000, 'minimum_stock' => 100],
+            
+            // Makanan Utama
+            ['name' => 'Daging Ayam', 'unit' => 'gram', 'total_stock' => 5000, 'minimum_stock' => 1000],
+            ['name' => 'Beras Putih', 'unit' => 'gram', 'total_stock' => 10000, 'minimum_stock' => 2000],
+            
+            // Additional
+            ['name' => 'Lemon', 'unit' => 'pcs', 'total_stock' => 100, 'minimum_stock' => 20],
+            ['name' => 'Thai Tea Mix', 'unit' => 'gram', 'total_stock' => 2000, 'minimum_stock' => 200],
+            ['name' => 'Sosis', 'unit' => 'pcs', 'total_stock' => 100, 'minimum_stock' => 20],
+            ['name' => 'Nugget Ayam', 'unit' => 'pcs', 'total_stock' => 100, 'minimum_stock' => 20],
         ];
 
         $ingredientModels = [];
@@ -101,15 +112,16 @@ class CoffeeShopSeeder extends Seeder
         $frappe = Category::where('name', 'Frappe & Blended')->first();
         $snacks = Category::where('name', 'Snacks')->first();
         $pastry = Category::where('name', 'Pastry')->first();
+        $makananUtama = Category::where('name', 'Makanan Utama')->first();
 
         $products = [
             // Hot Coffee
             ['name' => 'Espresso', 'base_price' => 18000, 'category_id' => $hotCoffee->id, 'description' => 'Single shot of rich espresso', 'tags' => 'classic,strong'],
-            ['name' => 'Americano', 'base_price' => 22000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso diluted with hot water', 'tags' => 'classic'],
+            ['name' => 'Americano', 'base_price' => 22000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso diluted with hot water', 'tags' => 'classic', 'photos' => ["products/LSa6GDhlqltNl7JfsMd4Xjf9MvEmuy4VLMFR63Pg.jpg"]],
             ['name' => 'Cappuccino', 'base_price' => 28000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with steamed milk foam', 'tags' => 'classic,recommended'],
             ['name' => 'Latte', 'base_price' => 30000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with steamed milk', 'tags' => 'classic,recommended'],
             ['name' => 'Mocha', 'base_price' => 35000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with chocolate and steamed milk', 'tags' => 'sweet'],
-            ['name' => 'Vanilla Latte', 'base_price' => 35000, 'category_id' => $hotCoffee->id, 'description' => 'Latte with vanilla syrup', 'tags' => 'sweet'],
+            ['name' => 'Vanilla Latte', 'base_price' => 35000, 'category_id' => $hotCoffee->id, 'description' => 'Latte with vanilla syrup', 'tags' => 'sweet', 'photos' => ["products/XpeHbXeE1AkJ47nFA03e8ntEIVrLnOaSAXgZyBj1.jpg"]],
             ['name' => 'Caramel Macchiato', 'base_price' => 38000, 'category_id' => $hotCoffee->id, 'description' => 'Espresso with vanilla, milk, and caramel drizzle', 'tags' => 'sweet,recommended'],
             ['name' => 'Hazelnut Latte', 'base_price' => 36000, 'category_id' => $hotCoffee->id, 'description' => 'Latte with hazelnut syrup', 'tags' => 'sweet'],
             
@@ -119,13 +131,13 @@ class CoffeeShopSeeder extends Seeder
             ['name' => 'Iced Mocha', 'base_price' => 38000, 'category_id' => $icedCoffee->id, 'description' => 'Iced chocolate coffee with whipped cream', 'tags' => 'sweet,refreshing'],
             ['name' => 'Iced Caramel Latte', 'base_price' => 38000, 'category_id' => $icedCoffee->id, 'description' => 'Iced latte with caramel syrup', 'tags' => 'sweet'],
             ['name' => 'Vietnamese Coffee', 'base_price' => 28000, 'category_id' => $icedCoffee->id, 'description' => 'Strong coffee with condensed milk', 'tags' => 'sweet,strong'],
-            ['name' => 'Es Kopi Susu', 'base_price' => 25000, 'category_id' => $icedCoffee->id, 'description' => 'Indonesian style iced milk coffee', 'tags' => 'local,recommended'],
+            ['name' => 'Es Kopi Susu', 'base_price' => 25000, 'category_id' => $icedCoffee->id, 'description' => 'Indonesian style iced milk coffee', 'tags' => 'local,recommended', 'photos' => ["products/2XgM0XuRWZE6GvaHCPIggGt61gykCNHIYyUX0dOT.jpg"]],
             ['name' => 'Brown Sugar Latte', 'base_price' => 35000, 'category_id' => $icedCoffee->id, 'description' => 'Iced latte with brown sugar syrup', 'tags' => 'sweet,trending'],
             
             // Non-Coffee
             ['name' => 'Hot Chocolate', 'base_price' => 28000, 'category_id' => $nonCoffee->id, 'description' => 'Rich hot chocolate drink', 'tags' => 'sweet,kids'],
-            ['name' => 'Iced Chocolate', 'base_price' => 30000, 'category_id' => $nonCoffee->id, 'description' => 'Chilled chocolate milk', 'tags' => 'sweet,kids,refreshing'],
-            ['name' => 'Matcha Latte', 'base_price' => 35000, 'category_id' => $nonCoffee->id, 'description' => 'Japanese green tea latte', 'tags' => 'healthy,trending'],
+            ['name' => 'Iced Chocolate', 'base_price' => 30000, 'category_id' => $nonCoffee->id, 'description' => 'Chilled chocolate milk', 'tags' => 'sweet,kids,refreshing', 'photos' => ["products/RIhyi4RSV6t2hRDFWkT0RQuGLMcRIoczsan3atTP.jpg"]],
+            ['name' => 'Matcha Latte', 'base_price' => 35000, 'category_id' => $nonCoffee->id, 'description' => 'Japanese green tea latte', 'tags' => 'healthy,trending', 'photos' => ["products/SUsFsdN1gJCEVARo27DtaLVoLl23sN3G2qs817oV.jpg"]],
             ['name' => 'Iced Matcha Latte', 'base_price' => 38000, 'category_id' => $nonCoffee->id, 'description' => 'Chilled matcha with milk', 'tags' => 'healthy,refreshing'],
             
             // Tea
@@ -141,14 +153,19 @@ class CoffeeShopSeeder extends Seeder
             ['name' => 'Matcha Frappe', 'base_price' => 40000, 'category_id' => $frappe->id, 'description' => 'Blended matcha green tea', 'tags' => 'healthy'],
             
             // Snacks
-            ['name' => 'French Fries', 'base_price' => 25000, 'category_id' => $snacks->id, 'description' => 'Crispy golden french fries', 'tags' => 'savory'],
+            ['name' => 'French Fries', 'base_price' => 25000, 'category_id' => $snacks->id, 'description' => 'Crispy golden french fries', 'tags' => 'savory', 'photos' => ["products/gpZYT33iPPjY2g5eiTYoDXbN2pC2V0eeSIgD2HM9.jpg"]],
             ['name' => 'Cheese Fries', 'base_price' => 32000, 'category_id' => $snacks->id, 'description' => 'French fries with melted cheese', 'tags' => 'savory,recommended'],
             ['name' => 'Toast Bread', 'base_price' => 20000, 'category_id' => $snacks->id, 'description' => 'Toasted bread with butter', 'tags' => 'simple'],
             
             // Pastry
-            ['name' => 'Butter Croissant', 'base_price' => 28000, 'category_id' => $pastry->id, 'description' => 'Flaky buttery croissant', 'tags' => 'classic,recommended'],
+            ['name' => 'Butter Croissant', 'base_price' => 28000, 'category_id' => $pastry->id, 'description' => 'Flaky buttery croissant', 'tags' => 'classic,recommended', 'photos' => ["products/AzkJygyskRE9UiL6aqUyiWr8SldC1lK7tos96lfs.jpg"]],
             ['name' => 'Chocolate Croissant', 'base_price' => 32000, 'category_id' => $pastry->id, 'description' => 'Croissant filled with chocolate', 'tags' => 'sweet'],
             ['name' => 'Ham & Cheese Croissant', 'base_price' => 35000, 'category_id' => $pastry->id, 'description' => 'Savory croissant with ham and cheese', 'tags' => 'savory'],
+            
+            // Makanan Utama
+            ['name' => 'Nasi Goreng Spesial', 'base_price' => 35000, 'category_id' => $makananUtama->id, 'description' => 'Nasi goreng dengan bumbu rahasia dan suwiran ayam.', 'tags' => 'spicy,bestseller', 'photos' => ["products/JnarubxjcBmyKBUK02X3pIq14WuRe4GkKs3yROvn.jpg"]],
+            ['name' => 'Ayam Penyet Keshir', 'base_price' => 38000, 'category_id' => $makananUtama->id, 'description' => 'Ayam penyet dengan sambal khas Keshir yang super pedas.', 'tags' => 'spicy', 'photos' => ["products/alKHRJHnjJioJRtezbOkrk3zuDqYSUdz2vjcKn1a.jpg"]],
+            ['name' => 'Platter Keshir', 'base_price' => 45000, 'category_id' => $snacks->id, 'description' => 'Campuran kentang goreng, sosis, dan nugget ayam.', 'tags' => 'snack,sharing', 'photos' => ["products/KzeH5X9TxsWLysEN4M8zzZfc9ITvh637NcN7Wgv8.jpg"]],
         ];
 
         $productModels = [];
@@ -289,6 +306,73 @@ class CoffeeShopSeeder extends Seeder
                 ['ingredient' => 'Croissant', 'quantity' => 1],
                 ['ingredient' => 'Ham', 'quantity' => 30],
                 ['ingredient' => 'Cheese', 'quantity' => 25],
+            ],
+            'Nasi Goreng Spesial' => [
+                ['ingredient' => 'Beras Putih', 'quantity' => 200],
+                ['ingredient' => 'Daging Ayam', 'quantity' => 50],
+            ],
+            'Ayam Penyet Keshir' => [
+                ['ingredient' => 'Daging Ayam', 'quantity' => 150],
+                ['ingredient' => 'Beras Putih', 'quantity' => 150],
+            ],
+            'Platter Keshir' => [
+                ['ingredient' => 'French Fries', 'quantity' => 100],
+                ['ingredient' => 'Sosis', 'quantity' => 3],
+                ['ingredient' => 'Nugget Ayam', 'quantity' => 5],
+            ],
+            
+            // Previously missing recipes
+            'Iced Caramel Latte' => [
+                ['ingredient' => 'Espresso Shot', 'quantity' => 60],
+                ['ingredient' => 'Fresh Milk', 'quantity' => 180],
+                ['ingredient' => 'Caramel Syrup', 'quantity' => 25],
+                ['ingredient' => 'Ice Cubes', 'quantity' => 150],
+            ],
+            'Iced Lemon Tea' => [
+                ['ingredient' => 'Black Tea Leaves', 'quantity' => 3],
+                ['ingredient' => 'Water', 'quantity' => 200],
+                ['ingredient' => 'Lemon', 'quantity' => 1],
+                ['ingredient' => 'Simple Syrup', 'quantity' => 20],
+                ['ingredient' => 'Ice Cubes', 'quantity' => 150],
+            ],
+            'Thai Tea' => [
+                ['ingredient' => 'Thai Tea Mix', 'quantity' => 10],
+                ['ingredient' => 'Water', 'quantity' => 150],
+                ['ingredient' => 'Condensed Milk', 'quantity' => 30],
+                ['ingredient' => 'Fresh Milk', 'quantity' => 50],
+                ['ingredient' => 'Ice Cubes', 'quantity' => 150],
+            ],
+            'Coffee Frappe' => [
+                ['ingredient' => 'Espresso Shot', 'quantity' => 60],
+                ['ingredient' => 'Fresh Milk', 'quantity' => 150],
+                ['ingredient' => 'Simple Syrup', 'quantity' => 20],
+                ['ingredient' => 'Ice Cubes', 'quantity' => 200],
+                ['ingredient' => 'Whipped Cream', 'quantity' => 30],
+            ],
+            'Mocha Frappe' => [
+                ['ingredient' => 'Espresso Shot', 'quantity' => 60],
+                ['ingredient' => 'Fresh Milk', 'quantity' => 150],
+                ['ingredient' => 'Chocolate Sauce', 'quantity' => 30],
+                ['ingredient' => 'Ice Cubes', 'quantity' => 200],
+                ['ingredient' => 'Whipped Cream', 'quantity' => 30],
+            ],
+            'Caramel Frappe' => [
+                ['ingredient' => 'Espresso Shot', 'quantity' => 60],
+                ['ingredient' => 'Fresh Milk', 'quantity' => 150],
+                ['ingredient' => 'Caramel Syrup', 'quantity' => 25],
+                ['ingredient' => 'Ice Cubes', 'quantity' => 200],
+                ['ingredient' => 'Whipped Cream', 'quantity' => 30],
+            ],
+            'Matcha Frappe' => [
+                ['ingredient' => 'Matcha Powder', 'quantity' => 5],
+                ['ingredient' => 'Fresh Milk', 'quantity' => 150],
+                ['ingredient' => 'Simple Syrup', 'quantity' => 20],
+                ['ingredient' => 'Ice Cubes', 'quantity' => 200],
+                ['ingredient' => 'Whipped Cream', 'quantity' => 30],
+            ],
+            'Toast Bread' => [
+                ['ingredient' => 'Bread', 'quantity' => 2],
+                ['ingredient' => 'Butter', 'quantity' => 15],
             ],
         ];
 

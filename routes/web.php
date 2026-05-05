@@ -67,9 +67,7 @@ Route::middleware(['auth', 'attendance'])->group(function () {
 
     // Dashboard (Owner & Manager)
     Route::middleware('role:owner,manager')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('dashboard.index');
-        })->name('dashboard');
+        Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
         // Master Data Management
         Route::resource('categories', CategoryController::class)->except(['show']);

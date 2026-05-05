@@ -79,7 +79,10 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // Generate Dummy Demo Data (Menus, Ingredients, Transactions)
-        $this->call(DemoDataSeeder::class);
+        // Generate Demo Data (Menus, Ingredients)
+        $this->call(CoffeeShopSeeder::class);
+        
+        // Generate Analytics Data (Attendance, Transactions)
+        $this->call(AnalyticsDemoSeeder::class);
     }
 }
